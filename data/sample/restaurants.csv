@@ -1,0 +1,51 @@
+id,name,cuisine_type,description,phone,email,location_id,is_active,created_at
+1,"Cannon, Anderson and Alvarez Bistro",Mexican,Reactive composite firmware,596.338.3465x78713,andrew83@robinson.com,5,True,2025-11-02 10:26:41+00:00
+2,Heath Inc Kitchen,Korean,Profound disintermediate focus group,+1-873-782-9973x76311,ujenkins@nunez.com,19,True,2025-10-30 19:10:45+00:00
+3,Chandler-Mcbride Kitchen,Indian,Customer-focused dynamic core,387.926.2473,williamsyvette@novak.com,7,True,2026-03-14 02:16:54+00:00
+4,Olson-Hancock Kitchen,Vietnamese,Centralized composite implementation,5646746872,tanyariley@brown.info,18,True,2026-04-20 13:08:00+00:00
+5,"Moore, Yu and Miller Cafe",Korean,Enterprise-wide asymmetric policy,336-819-3990,sarah35@baker.com,8,True,2026-04-02 19:52:12+00:00
+6,Hickman-Walls Kitchen,Japanese,Advanced logistical process improvement,001-311-583-8425,justin78@turner.net,6,True,2025-10-10 07:08:41+00:00
+7,"Montoya, Evans and Alvarado Grill",Thai,Devolved empowering budgetary management,682-944-9353,rebecca01@henderson.com,5,True,2026-06-11 16:33:19+00:00
+8,Martin-Ramos Kitchen,Thai,Triple-buffered interactive open architecture,4118280598,bobbydiaz@nolan.com,3,True,2026-06-23 06:29:53+00:00
+9,Gomez PLC Grill,Thai,Open-source regional synergy,(532)626-0256,kristinrodriguez@garrison.com,20,True,2026-08-20 09:22:01+00:00
+10,Bailey-Hoover Cafe,Indian,Focused directional algorithm,+1-636-454-1458x68501,benjamin96@chandler-edwards.org,18,True,2026-04-23 21:02:12+00:00
+11,Cruz PLC Kitchen,American,Ergonomic eco-centric analyzer,001-360-688-3561x595,elizabeth56@phillips.biz,18,True,2026-06-27 07:17:20+00:00
+12,"Orr, Gilbert and Turner Grill",Vietnamese,Reactive 24hour framework,336-699-5777x3872,clarence34@drake.com,19,True,2025-10-25 04:58:17+00:00
+13,Riggs PLC Kitchen,Chinese,Visionary asynchronous knowledgebase,(993)267-6320x16328,samanthamartinez@solis.net,8,True,2026-05-12 07:47:22+00:00
+14,"Stewart, Fischer and Ramos Bistro",Chinese,Up-sized motivating interface,+1-972-577-4348,scott43@rogers-orozco.com,4,True,2025-11-29 23:58:05+00:00
+15,Hall Ltd Grill,Mediterranean,Distributed tertiary data-warehouse,866-858-7603,gateskathy@woods-bender.com,6,True,2026-07-26 21:07:31+00:00
+16,Castaneda-Ashley Grill,Mexican,Operative national synergy,001-489-937-3467x0656,tinaferguson@vargas-alvarado.com,3,True,2026-06-13 21:05:21+00:00
+17,Taylor-Murray House,Italian,Business-focused empowering implementation,737-555-6464x17080,harringtondenise@herring.com,8,True,2026-06-05 13:29:47+00:00
+18,Allen Group Grill,American,Synchronized bifurcated open system,674.352.9912,hickmanbarbara@sanders-espinoza.com,18,True,2026-05-25 04:58:49+00:00
+19,"Rivas, Sanchez and Terry Kitchen",Thai,Innovative systemic policy,790-258-6518,gshort@yu-reid.info,8,True,2026-07-08 22:49:21+00:00
+20,Graham Ltd Cafe,Thai,Programmable solution-oriented flexibility,+1-587-976-9453x147,frogers@white-lewis.com,9,True,2026-02-16 10:24:58+00:00
+21,Beard-Haynes Grill,Vietnamese,Grass-roots next generation access,531.836.7837x77014,kevinperkins@tran-cooper.net,7,True,2026-02-12 17:25:36+00:00
+22,Warner-Nelson Cafe,American,Function-based discrete capability,001-635-318-2337x4989,kennethward@smith-ferguson.com,5,True,2025-10-24 22:27:55+00:00
+23,Tran Ltd House,Mexican,De-engineered scalable system engine,310.394.7775x2047,kvasquez@parks.com,18,True,2025-11-09 08:10:18+00:00
+24,Wilson Group Cafe,Vietnamese,Robust radical utilization,+1-238-367-7496x499,colleenbaker@moore.net,19,True,2025-11-05 09:53:01+00:00
+25,Smith Group Bistro,Mexican,Team-oriented radical leverage,503-444-7134x9361,margaret10@sparks.org,17,True,2026-09-30 00:21:54+00:00
+26,Gonzales-Harrison Kitchen,Indian,Innovative tangible initiative,288-377-1906x594,suzannehuff@matthews.com,5,True,2026-05-19 01:14:22+00:00
+27,Hines and Sons House,American,Phased multi-state projection,342.496.7175x655,robert74@landry.info,3,True,2025-11-10 11:00:18+00:00
+28,King-Wilson Cafe,Vietnamese,Visionary impactful migration,9879603859,harrisandrea@kim-wolfe.com,17,True,2025-10-18 11:18:39+00:00
+29,"Lynch, Allen and Moore Kitchen",Korean,Reactive 24/7 neural-net,(513)917-1274x84677,patrickweeks@francis.biz,4,True,2026-02-16 06:05:42+00:00
+30,"Adams, Smith and Barber Grill",Korean,Reverse-engineered optimal protocol,527.887.5588x6753,melissajenkins@garner-thornton.biz,11,True,2026-03-06 04:44:35+00:00
+31,"Sparks, Pearson and Hernandez Bistro",American,Automated clear-thinking middleware,001-851-471-8702,harrisontanya@hanson-sanders.com,15,False,2026-09-03 01:15:22+00:00
+32,Phelps-Villarreal House,Japanese,Multi-tiered foreground product,001-378-909-1343x161,heatherberger@nguyen.com,6,True,2026-02-23 11:20:55+00:00
+33,Jordan-Sanchez Grill,Chinese,Open-source non-volatile software,(422)519-6937,dlittle@estrada-nolan.info,17,True,2026-09-22 06:06:32+00:00
+34,Byrd-Moore Grill,Italian,Organic grid-enabled parallelism,664-674-3671x3695,spencedominique@smith-grimes.com,6,True,2026-09-25 21:47:36+00:00
+35,"Mcgee, Wall and Leach Kitchen",Korean,Vision-oriented discrete portal,(733)494-2104x709,browningmark@thompson-anderson.net,20,True,2026-09-12 15:25:59+00:00
+36,Schmidt-Mcintyre Kitchen,Indian,Down-sized eco-centric matrices,651-371-2368x5160,vrichardson@baker.com,12,True,2025-11-18 08:05:13+00:00
+37,"Hall, Johnson and Henson Bistro",Japanese,Realigned fresh-thinking pricing structure,617.946.1200,davispaige@price.net,2,True,2026-03-19 00:46:22+00:00
+38,"Newton, Moore and Perry Kitchen",Vietnamese,Cross-platform mobile pricing structure,(840)653-7735x15850,tammyrush@davis-lewis.org,3,True,2025-10-15 13:17:39+00:00
+39,Buchanan and Sons House,Chinese,De-engineered zero tolerance open system,218.639.3352,vanessafernandez@rodriguez.com,5,True,2025-10-13 00:44:11+00:00
+40,Tyler-Young House,Mediterranean,Inverse 3rdgeneration conglomeration,302-968-1177x589,soniawilliams@boyd.com,6,True,2026-04-11 06:39:47+00:00
+41,Simmons-Rodriguez Cafe,Vietnamese,Universal leadingedge archive,759-821-2499,shawn96@mcguire.net,7,True,2026-07-14 04:56:35+00:00
+42,Jordan and Sons Grill,Mexican,Open-source global knowledgebase,(361)856-5452x7111,garnernathan@hawkins.net,13,True,2026-05-13 09:29:48+00:00
+43,Santiago-Jenkins Cafe,Thai,Synchronized web-enabled interface,001-304-794-5198x3273,danny49@aguirre.org,17,True,2026-06-02 13:08:44+00:00
+44,"Day, Johnson and Hickman Bistro",Mexican,Team-oriented encompassing algorithm,(844)355-0229,joycebonilla@reese.biz,3,True,2026-03-19 07:21:02+00:00
+45,Peterson-Wood House,Vietnamese,Up-sized fresh-thinking time-frame,001-691-902-2901,ctucker@nelson-fischer.com,8,True,2026-02-18 07:28:21+00:00
+46,Rodriguez-Gregory Kitchen,Indian,Reverse-engineered mobile moderator,+1-740-336-9003x43244,jimenezryan@james.com,2,True,2026-04-19 13:00:40+00:00
+47,"Whitaker, Drake and Jones Grill",Indian,User-centric 6thgeneration Internet solution,6713596966,usmith@solis.info,3,True,2026-08-26 09:16:18+00:00
+48,"Gillespie, Davis and Richard Cafe",Japanese,Fully-configurable intermediate parallelism,(581)764-5352x1818,jessica23@thomas.com,7,True,2026-05-29 04:59:37+00:00
+49,Wolf Ltd House,Vietnamese,Compatible context-sensitive throughput,+1-977-999-7995x5271,laura90@romero-collins.info,16,True,2025-10-21 20:45:11+00:00
+50,Wood LLC Cafe,Mediterranean,Compatible secondary array,+1-998-467-9807x935,hayeslisa@haas-miller.com,7,True,2025-10-22 11:03:33+00:00

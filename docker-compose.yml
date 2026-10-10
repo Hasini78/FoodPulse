@@ -1,0 +1,59 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: foodpulse-postgres
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER:-foodpulse}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-foodpulse}
+      POSTGRES_DB: ${POSTGRES_DB:-foodpulse}
+    ports:
+      - "${POSTGRES_PORT:-5432}:5432"
+    volumes:
+      - foodpulse_pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-foodpulse} -d ${POSTGRES_DB:-foodpulse}"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  backend:
+    build:
+      context: .
+      dockerfile: docker/Dockerfile
+    container_name: foodpulse-backend
+    env_file:
+      - .env
+    environment:
+      DATABASE_URL: postgresql+psycopg2://${POSTGRES_USER:-foodpulse}:${POSTGRES_PASSWORD:-foodpulse}@postgres:5432/${POSTGRES_DB:-foodpulse}
+    ports:
+      - "8000:8000"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    volumes:
+      - ./backend/app:/app/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # -------------------------------------------------------------------------
+  # Airflow (optional — enable when the orchestration module is ready)
+  # -------------------------------------------------------------------------
+  # airflow:
+  #   image: apache/airflow:2.9.3
+  #   container_name: foodpulse-airflow
+  #   depends_on:
+  #     postgres:
+  #       condition: service_healthy
+  #   environment:
+  #     AIRFLOW__CORE__EXECUTOR: LocalExecutor
+  #     AIRFLOW__DATABASE__SQL_ALCHEMY_CONN: postgresql+psycopg2://${POSTGRES_USER:-foodpulse}:${POSTGRES_PASSWORD:-foodpulse}@postgres:5432/airflow
+  #     AIRFLOW__CORE__LOAD_EXAMPLES: "false"
+  #     AIRFLOW_UID: ${AIRFLOW_UID:-50000}
+  #   volumes:
+  #     - ./airflow/dags:/opt/airflow/dags
+  #     - ./airflow/logs:/opt/airflow/logs
+  #   ports:
+  #     - "8080:8080"
+  #   command: webserver
+
+volumes:
+  foodpulse_pgdata:

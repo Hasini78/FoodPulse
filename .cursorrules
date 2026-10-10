@@ -1,0 +1,24 @@
+You are helping build FoodPulse, a Restaurant Intelligence & Customer Experience Mining Platform.
+
+Stack:
+- Backend: Python 3.11, FastAPI, SQLAlchemy 2.x, Pydantic v2, JWT auth
+- Operational DB: PostgreSQL. Analytical DW: Snowflake (star schema)
+- ETL: Pandas + PySpark, orchestrated by Apache Airflow
+- Mining/ML: scikit-learn, mlxtend, XGBoost, NLTK, spaCy, VADER, HuggingFace transformers
+- Frontend: React + TypeScript + Tailwind CSS + Recharts (Vite)
+- BI: Power BI (connects to Snowflake)
+- DevOps: Docker, docker-compose, Git
+
+Repo layout (do not deviate):
+frontend/ backend/app/{api,models,schemas,services} data/{raw,processed,sample}
+etl/{extract,transform,load,pipelines} mining/{sentiment,clustering,association,churn,recommendation,forecasting}
+warehouse/{dimensions,facts,sql} airflow/dags pyspark/jobs powerbi/reports docker docs
+
+Rules:
+- Read all config from environment variables (.env via python-dotenv / pydantic-settings). Never hardcode secrets.
+- Type hints and docstrings on all Python functions; use logging, not print.
+- ML modules should expose train(), evaluate(), predict()/score() where meaningful. Descriptive mining modules (sentiment/association) should expose clear run/analyze/evaluate APIs instead of forcing artificial train() methods. Save reusable artifacts to mining/<module>/artifacts/.
+- Every core mining/ML module must run on the existing sample dataset in data/sample/ without requiring external services. Snowflake/Airflow/Power BI remain optional integration layers until their phases.
+- Write pytest tests for each module. Keep functions small and pure where possible.
+- Use the star schema table/column names defined in warehouse/sql/ as the single source of truth.
+- When unsure, ask me instead of guessing.

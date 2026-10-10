@@ -1,0 +1,55 @@
+# Environment / secrets
+.env
+.venv/
+venv/
+env/
+
+# Node
+node_modules/
+frontend/dist/
+frontend/.vite/
+npm-debug.log*
+yarn-error.log*
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+.eggs/
+dist/
+build/
+*.egg
+
+# Data & ML artifacts
+data/raw/
+data/processed/
+mining/**/artifacts/
+*.log
+
+# Keep directory placeholders
+!data/raw/.gitkeep
+!data/processed/.gitkeep
+!data/sample/.gitkeep
+
+# IDE / OS
+.idea/
+.vscode/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Testing / coverage / linters
+.coverage
+htmlcov/
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+
+# Docker / Airflow local
+airflow/logs/
+airflow/plugins/

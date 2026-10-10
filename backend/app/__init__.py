@@ -1,0 +1,1 @@
+"""FoodPulse backend application package."""

@@ -1,0 +1,6 @@
+id,email,full_name,hashed_password,is_active,role,created_at
+1,analyst1@foodpulse.local,James Martin,ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f,True,viewer,2026-08-05 15:33:11+00:00
+2,analyst2@foodpulse.local,Tamara George,ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f,True,admin,2026-04-15 00:21:49+00:00
+3,analyst3@foodpulse.local,Timothy Koch,ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f,True,admin,2026-08-26 05:54:46+00:00
+4,analyst4@foodpulse.local,Cynthia Allen,ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f,True,viewer,2026-05-15 14:22:41+00:00
+5,analyst5@foodpulse.local,Angelica Tucker,ef92b778bafe771e89245b89ecbc08a44a4e166c06659911881f383d4473e94f,True,analyst,2025-11-03 03:20:08+00:00
