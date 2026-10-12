@@ -18,7 +18,7 @@ FoodPulse turns restaurant customer, order, and review data into insights: senti
 | FastAPI list and stats endpoints | Implemented |
 | Snowflake analytical load (`warehouse/snowflake/`) | Implemented. A previous live account test completed the analytical load |
 | Airflow orchestration | Not implemented |
-| Verified PySpark execution | Not verified. `USE_SPARK=1` can load `pyspark/jobs/feature_aggregations.py`; that path was not executed |
+| PySpark feature job (`pyspark/jobs/feature_aggregations.py`) | Implemented. Verified locally on 12 October 2026 with Java 25 and PySpark 4.2.0. It writes a separate directory and does not replace the Pandas ETL files |
 | Optional transformer sentiment (`SENTIMENT_MODEL=transformer`) | Present as optional code; not downloaded or verified |
 | React dashboard wired to mining outputs, and Power BI | Not implemented |
 
@@ -53,7 +53,7 @@ FoodPulse/
 └── .env.example
 ```
 
-`warehouse/snowflake/` is implemented. `warehouse/dimensions/`, `warehouse/facts/`, and `warehouse/sql/` remain placeholders. `airflow/` and `powerbi/` are not implemented. `pyspark/jobs/feature_aggregations.py` is present, but that PySpark path was not executed. The directory `pyspark/` is not the PySpark library. `mining/forecasting/` is implemented.
+`warehouse/snowflake/` is implemented. `warehouse/dimensions/`, `warehouse/facts/`, and `warehouse/sql/` remain placeholders. `airflow/` and `powerbi/` are not implemented. `pyspark/jobs/feature_aggregations.py` is the Spark feature job; the directory `pyspark/` is not the PySpark library. `mining/forecasting/` is implemented.
 
 ## Make / scripts
 
@@ -67,7 +67,7 @@ FoodPulse/
 
 `scripts/run-etl.ps1` runs `python etl\load\seed.py --csv-only`. That regenerates and overwrites `data/sample`. The transform pipeline is a different command, `python -m etl.pipelines.run_transform`, which only reads the existing sample CSVs.
 
-`scripts/test.ps1` changes into `backend/` and runs `pytest -q`. It does not collect the root `tests/` modules (`test_transform.py`, `test_sentiment.py`, `test_clustering.py`, `test_association.py`, `test_churn.py`, `test_recommendation.py`, `test_forecasting.py`, `test_snowflake_load.py`). There are no test modules under `backend/`. The `tests/` command and the count from this documentation check are in [Tests](#tests).
+`scripts/test.ps1` changes into `backend/` and runs `pytest -q`. It does not collect the root `tests/` modules (`test_transform.py`, `test_sentiment.py`, `test_clustering.py`, `test_association.py`, `test_churn.py`, `test_recommendation.py`, `test_forecasting.py`, `test_snowflake_load.py`, `test_spark_features.py`). There are no test modules under `backend/`. The `tests/` command and the count from this documentation check are in [Tests](#tests).
 
 ## Prerequisites
 
@@ -170,7 +170,35 @@ From the repository root:
 
 `--reference-date` is a UTC calendar date (`YYYY-MM-DD`). If omitted, the pipeline uses `FEATURE_REFERENCE_DATE` when set, otherwise the current UTC date. Optional flags: `--sample-dir`, `--output-dir` (default `data/processed`).
 
-`USE_SPARK=1` loads `pyspark/jobs/feature_aggregations.py` by file path. That job was not executed. The default path does not import PySpark.
+`USE_SPARK=1` loads `pyspark/jobs/feature_aggregations.py` by file path and uses it only for the feature tables inside the ETL run. The default path does not import PySpark. The standalone job below is the verified way to run Spark without replacing those ETL files.
+
+### PySpark feature job
+
+`pyspark/jobs/feature_aggregations.py` reads prepared Parquet from `--input-dir` (default `data/processed`) and writes a new directory. It does not modify `data/sample`, PostgreSQL, or the original ETL Parquet files. Required inputs are `customers.parquet`, `restaurants.parquet`, `orders.parquet`, and `reviews.parquet`. `review_sentiment.parquet` is optional.
+
+Shared feature columns match `etl/transform/feature_engineering.py`. Completed orders are `status` lowercased to `completed`, events after the reference date are excluded, and `sentiment_label` and `sentiment_score` stay null. Spark also writes `restaurant_activity.parquet` (restaurant spend, average order value, and distinct customer count), which the Pandas feature file does not contain. When review sentiment is present, it writes `restaurant_sentiment_counts.parquet` with positive, negative, neutral, and invalid counts and proportions. Those counts are not copied into `restaurant_features.parquet`.
+
+Prerequisites: Java and `pyspark` from the root `requirements.txt` (`pyspark>=3.5`). On 12 October 2026 this machine used Java 25.0.3 and PySpark 4.2.0. Spark warned that `winutils.exe` was missing and still finished. Install PySpark into the project virtualenv if it is not already there:
+
+```powershell
+.\.venv\Scripts\python.exe -m pip install "pyspark>=3.5"
+```
+
+Run the job from the repository root. The default output is `data/processed/spark_features`, which is not the ETL feature files:
+
+```powershell
+.\.venv\Scripts\python.exe pyspark\jobs\feature_aggregations.py --input-dir data\processed --output-dir data\processed\spark_features --reference-date 2026-10-11
+```
+
+Outputs in that directory: `customer_features.parquet`, `restaurant_features.parquet`, `restaurant_activity.parquet`, and, when the sentiment file exists, `restaurant_sentiment_counts.parquet`.
+
+Tests use temporary Parquet files and do not read `data/processed`:
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests\test_spark_features.py -q
+```
+
+On 12 October 2026 that command reported **4 passed**. The same day, the job above was run with `--output-dir` set to a temporary directory. Spark returned 500 customer rows and 50 restaurant rows. The shared numeric feature columns matched the existing Pandas `customer_features.parquet` and `restaurant_features.parquet` for reference date 2026-10-11. The original ETL files were not replaced. `restaurant_sentiment_counts.parquet` contained 3,000 scored reviews. Airflow does not call this job.
 
 ### Observed on the 2026-10-11 sample run
 
@@ -704,6 +732,5 @@ On 11 October 2026 that command reported **21 passed**. These are automated test
 ## Not implemented
 
 - Airflow orchestration
-- A verified PySpark execution path
 - A verified transformer sentiment backend
 - Dashboard integration (React views of the mining outputs, and Power BI)
