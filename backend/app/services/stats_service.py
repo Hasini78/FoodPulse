@@ -14,6 +14,8 @@ def get_overview_stats(db: Session) -> OverviewStats:
     total_orders = db.scalar(select(func.count()).select_from(Order)) or 0
     total_reviews = db.scalar(select(func.count()).select_from(Review)) or 0
     average_rating = db.scalar(select(func.avg(Review.rating)))
+    completed = func.lower(Order.status) == "completed"
+    average_order_value = db.scalar(select(func.avg(Order.total_amount)).where(completed))
 
     return OverviewStats(
         total_restaurants=total_restaurants,
@@ -21,4 +23,5 @@ def get_overview_stats(db: Session) -> OverviewStats:
         total_orders=total_orders,
         total_reviews=total_reviews,
         average_rating=round(float(average_rating), 2) if average_rating is not None else None,
+        average_order_value=round(float(average_order_value), 2) if average_order_value is not None else None,
     )

@@ -11,3 +11,4 @@ class OverviewStats(BaseModel):
     total_orders: int
     total_reviews: int
     average_rating: float | None
+    average_order_value: float | None = None
