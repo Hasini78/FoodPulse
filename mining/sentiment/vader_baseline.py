@@ -26,10 +26,18 @@ _ANALYZER = None
 
 @dataclass(frozen=True)
 class SentimentScore:
-    """One overall sentiment decision."""
+    """One overall sentiment decision.
+
+    ``compound`` is the VADER compound score, or a signed transformer
+    confidence kept for older callers. ``confidence`` is set only by the
+    transformer backend and is the predicted-class probability from 0 to 1.
+    ``backend`` names the scorer that produced the row.
+    """
 
     label: str
     compound: float | None
+    confidence: float | None = None
+    backend: str = "vader"
 
 
 def score_text(value: object) -> SentimentScore:

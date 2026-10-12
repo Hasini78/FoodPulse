@@ -8,8 +8,8 @@ from datetime import datetime, timezone
 import pandas as pd
 
 from mining.sentiment.aspects import aspect_sentiments
-from mining.sentiment.transformer_backend import score_texts, transformer_selected
-from mining.sentiment.vader_baseline import score_text
+from mining.sentiment.transformer_backend import score_texts, selected_backend
+from mining.sentiment.vader_baseline import SentimentScore, score_text
 
 logger = logging.getLogger(__name__)
 
@@ -23,6 +23,17 @@ OUTPUT_COLUMNS = (
     "price_sent",
     "analyzed_at",
 )
+
+
+def _overall_score(score: SentimentScore) -> float | None:
+    """Use the VADER compound, or the transformer probability when that backend ran."""
+    if score.label == "invalid":
+        return None
+    if score.backend == "transformer":
+        if score.confidence is None:
+            raise RuntimeError("Transformer prediction is missing a confidence score.")
+        return score.confidence
+    return score.compound
 
 
 def analyze_reviews(
@@ -42,7 +53,8 @@ def analyze_reviews(
         stamp = stamp.replace(tzinfo=timezone.utc)
     source = reviews.drop_duplicates(subset=["id"], keep="first")
     texts = source["review_text"].tolist()
-    if transformer_selected():
+    backend = selected_backend()
+    if backend == "transformer":
         overall = score_texts(texts)
         logger.info("Scored %s reviews with the transformer backend", len(texts))
     else:
@@ -55,7 +67,7 @@ def analyze_reviews(
             {
                 "review_id": int(review_id),
                 "overall_sentiment": score.label,
-                "overall_score": score.compound,
+                "overall_score": _overall_score(score),
                 "food_sent": aspects["food"],
                 "service_sent": aspects["service"],
                 "ambience_sent": aspects["ambience"],
