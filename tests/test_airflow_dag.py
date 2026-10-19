@@ -148,6 +148,29 @@ def test_dag_file_declares_the_same_tasks_and_manual_schedule() -> None:
     assert "lambda" not in source
 
 
+def test_airflow_image_does_not_install_the_full_project_requirements() -> None:
+    dockerfile = (DAGS.parent / "Dockerfile").read_text(encoding="utf-8")
+    image_requirements = (DAGS.parent / "requirements.txt").read_text(encoding="utf-8").lower()
+    assert "airflow/requirements.txt" in dockerfile
+    assert "COPY --chown=airflow:root requirements.txt" not in dockerfile
+    requirement_lines = [
+        line.strip()
+        for line in image_requirements.splitlines()
+        if line.strip() and not line.lstrip().startswith("#")
+    ]
+    assert not any(line.startswith("pyspark") for line in requirement_lines)
+    for package in ("pandas", "pyarrow", "scikit-learn", "mlxtend", "matplotlib", "vadersentiment", "python-dotenv"):
+        assert package in image_requirements
+
+
+def test_airflow_compose_shares_task_logs_without_touching_metadata_volume() -> None:
+    compose = (DAGS.parents[1] / "docker-compose.airflow.yml").read_text(encoding="utf-8")
+    assert compose.count("foodpulse_airflow_pg:") == 2
+    assert "foodpulse_airflow_logs:/opt/airflow/logs" in compose
+    assert "hostname: foodpulse-airflow-scheduler" in compose
+    assert "AIRFLOW__WEBSERVER__WEB_SERVER_WORKER_TIMEOUT" in compose
+
+
 def test_dag_imports_when_apache_airflow_is_installed() -> None:
     installed = Path(sysconfig.get_path("purelib")) / "airflow" / "__init__.py"
     if not installed.is_file():

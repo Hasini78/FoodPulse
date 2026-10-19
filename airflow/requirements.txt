@@ -1,0 +1,25 @@
+# Packages imported by the tasks foodpulse_pipeline runs inside the Airflow image.
+# This is not the repository root requirements.txt.
+#
+# Included because the default task commands import them:
+# pandas, numpy, pyarrow: ETL, mining, forecast, and the Snowflake dry-run plan
+# scikit-learn: clustering and ridge forecasting
+# mlxtend: association mining
+# matplotlib: plots written by sentiment, clustering, churn, recommendations, and forecasting
+# vaderSentiment: default sentiment backend (imported when a review is scored)
+# python-dotenv: warehouse.snowflake.run_load imports it before the dry-run
+#
+# Left out on purpose:
+# pyspark: spark_features skips unless FOODPULSE_SPARK=1, and the job imports PySpark only then
+# torch, transformers, huggingface_hub: the sentiment task does not set SENTIMENT_MODEL, so it stays on VADER
+# nltk, spacy: lemmatizers are optional and the sentiment code falls back when they are absent
+# snowflake-connector-python: dry-run never connects; connect() imports the connector only for --execute
+# FastAPI, database, plotting-dashboard, and dev tools: the DAG does not import them
+pandas>=2.2,<3
+numpy>=1.26,<2
+pyarrow>=15.0
+scikit-learn>=1.4
+mlxtend>=0.23
+matplotlib>=3.8
+vaderSentiment>=3.3
+python-dotenv>=1.0
