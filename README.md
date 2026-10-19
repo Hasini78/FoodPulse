@@ -1,1121 +1,612 @@
-# FoodPulse
-****FoodPulse — Restaurant Intelligence & Customer Experience Mining Platform.******
-FoodPulse turns restaurant customer, order, and review data into insights: sentiment, segments, co-purchase rules, inactivity risk, offline recommendations, and demand forecasts.
+# FoodPulse — Restaurant Intelligence & Customer Experience Mining Platform
 
-## What is implemented
-| Area | Status |
+FoodPulse is a data mining and analytics platform that transforms restaurant, customer, order, and review data into actionable insights. It combines data engineering, machine learning, sentiment analysis, recommendation systems, demand forecasting, warehouse publishing, workflow orchestration, and an interactive analytics dashboard.
 
-|------|--------|
+The platform helps explore customer behavior, restaurant performance, review sentiment, food-item associations, inactivity risk, personalized recommendations, and expected demand.
 
-| Pandas cleaning, validation, and feature engineering (`etl/transform/`, `etl.pipelines.run_transform`) | Implemented |
+## Key Features
 
-| VADER overall sentiment and lexicon aspect labels (`mining/sentiment/`) | Implemented |
+- **Data engineering:** CSV-based ingestion, data cleaning, validation, and feature engineering using Pandas.
+- **Sentiment analysis:** VADER sentiment scoring, lexicon-based aspect sentiment, and an optional transformer-based sentiment backend.
+- **Customer segmentation:** Clustering customers using purchasing behavior and review features.
+- **Association rule mining:** Apriori-based discovery of frequently co-purchased food items.
+- **Customer inactivity analysis:** Rule-based risk scoring using completed-order history and customer feedback.
+- **Recommendation system:** Personalized food and restaurant recommendations using customer history, item associations, quality, and popularity.
+- **Demand forecasting:** Ridge regression and seasonal-naive forecasts for restaurant orders and food-item quantities.
+- **Distributed feature engineering:** A standalone PySpark job for scalable customer and restaurant feature aggregation.
+- **Snowflake integration:** Analytical Parquet publishing into Snowflake tables, with dry-run and explicit live-execution modes.
+- **Workflow orchestration:** An Airflow DAG that coordinates the existing ETL and data mining modules.
+- **Analytics dashboard:** A React application with interactive Plotly visualizations backed by FastAPI.
+- **Operational API and database:** FastAPI endpoints, PostgreSQL, SQLAlchemy, and JWT-based authentication infrastructure.
 
-| Customer clustering (`mining/clustering/`) | Implemented |
+## Technology Stack
 
-| Apriori association rules (`mining/association/`, mlxtend) | Implemented |
+| Layer | Technologies |
+|---|---|
+| Programming | Python, SQL, TypeScript, JavaScript |
+| Data engineering | Pandas, NumPy, PyArrow |
+| Data mining and ML | scikit-learn, mlxtend, VADER |
+| Optional NLP | Transformers, PyTorch |
+| Distributed processing | Apache Spark / PySpark |
+| Operational database | PostgreSQL |
+| Data warehouse | Snowflake |
+| Workflow orchestration | Apache Airflow, Docker Compose |
+| Backend | FastAPI, SQLAlchemy |
+| Frontend | React, Vite, TypeScript, Tailwind CSS, Plotly |
+| Testing | pytest, temporary Parquet datasets, mocked warehouse connections |
+| Development | Git, GitHub, PowerShell, VS Code / Cursor |
 
-| Rule-based inactivity / churn-risk score (`mining/churn/`) | Implemented |
+## System Architecture
 
-| Offline food and restaurant recommendations (`mining/recommendation/`) | Implemented |
+```text
+Raw / Sample CSV Data
+        |
+        v
+Data Cleaning, Validation & Feature Engineering
+                 (Pandas)
+        |
+        v
+Processed Parquet Datasets
+        |
+        +-------------------------------+
+        |               |               |
+        v               v               v
+    Sentiment       Clustering      Association
+    Analysis                        Rule Mining
+        |               |               |
+        +---------------+---------------+
+                        |
+           +------------+------------+
+           |            |            |
+           v            v            v
+         Churn     Recommendations Forecasting
+        Analysis                  Models
+           |            |            |
+           +------------+------------+
+                        |
+              +---------+---------+
+              |                   |
+              v                   v
+       Optional PySpark       Snowflake
+       Feature Processing     Analytics Load
+                                  |
+                                  v
+                         Analytical Snapshots
 
-| Demand forecasting (`mining/forecasting/`) | Implemented |
+Processed Parquet --> FastAPI --> React / Plotly Dashboard
 
-| FastAPI list and stats endpoints | Implemented |
+Airflow DAG --> Coordinates the existing processing commands
 
-| Snowflake analytical load (`warehouse/snowflake/`) | Implemented. A previous live account test completed the analytical load |
-
-| Airflow orchestration | DAG and tests implemented; actual Airflow import, scheduler, UI, and full DAG run not yet verified because Airflow is not installed in the project virtual environment and Docker daemon was not running during checks |
-
-| PySpark feature job (`pyspark/jobs/feature_aggregations.py`) | Implemented. Verified locally on 12 October 2026 with Java 25 and PySpark 4.2.0. It writes a separate directory and does not replace the Pandas ETL files |
-
-| Optional transformer sentiment (`SENTIMENT_MODEL=transformer`) | Implemented. A five-text CPU smoke test loaded `cardiffnlp/twitter-roberta-base-sentiment-latest` and returned real labels and probabilities. Not an accuracy evaluation on the 3,000 reviews |
-
-| React analytics dashboard (FastAPI + React + Recharts) | Implemented and verified locally; reads processed Parquet outputs through FastAPI. It does not retrain models, write Parquet, or connect to Snowflake. Power BI is not implemented. |
-
+PostgreSQL --> Operational database and API statistics
 ```
 
-Raw data → ETL (Pandas/PySpark, Airflow) → PostgreSQL (operational)
+**Important:** The current mining modules primarily use local processed Parquet files. Snowflake publishing is a separate operation, and the React dashboard reads processed files through FastAPI rather than querying Snowflake directly. PostgreSQL is the operational database, not a substitute for the analytics datasets.
 
-  → Snowflake (star-schema warehouse)
+## Project Structure
 
-  → Data mining / ML / NLP
-
-  → FastAPI → React analytics dashboard (implemented); Power BI (not implemented)
-
-```
-
-The mining modules above read and write local Parquet. They do not open a Snowflake connection. `warehouse/snowflake/` can publish approved analytical Parquet files, and only when `python -m warehouse.snowflake.run_load --execute` is used. The default command is a local dry-run. The React dashboard reads those processed files through FastAPI. It does not connect to Snowflake. PostgreSQL remains the operational database and is reported separately; it is not used as a substitute for the mining files.
-
-## Project structure
-```
-
+```text
 FoodPulse/
-
-├── backend/app/
-
-│   ├── api/ models/ schemas/ services/
-
-│   ├── core/          # config.py, security.py (JWT + bcrypt)
-
-│   ├── db/session.py  # SQLAlchemy engine/session
-
-│   └── main.py
-
-├── frontend/          # Vite + React + TS + Tailwind + Recharts
-
-├── etl/{extract,transform,load,pipelines}
-
-├── data/{raw,processed,sample}
-
-├── mining/{sentiment,clustering,association,churn,recommendation,forecasting}
-
-├── warehouse/snowflake/   # config, connection, DDL, load, CLI
-
-├── warehouse/{dimensions,facts,sql}
-
-├── airflow/dags  pyspark/jobs  powerbi/reports  docker  docs
-
+├── backend/
+│   ├── app/
+│   │   ├── api/
+│   │   ├── models/
+│   │   ├── schemas/
+│   │   ├── services/
+│   │   ├── core/
+│   │   ├── db/
+│   │   └── main.py
+│   └── tests/
+├── frontend/
+│   └── React + TypeScript + Vite dashboard
+├── etl/
+│   ├── extract/
+│   ├── transform/
+│   ├── load/
+│   └── pipelines/
+├── data/
+│   ├── raw/
+│   ├── sample/
+│   └── processed/
+├── mining/
+│   ├── sentiment/
+│   ├── clustering/
+│   ├── association/
+│   ├── churn/
+│   ├── recommendation/
+│   └── forecasting/
+├── pyspark/
+│   └── jobs/
+│       └── feature_aggregations.py
+├── warehouse/
+│   ├── snowflake/
+│   ├── dimensions/
+│   ├── facts/
+│   └── sql/
+├── airflow/
+│   ├── dags/
+│   │   ├── foodpulse_flow.py
+│   │   └── foodpulse_pipeline.py
+│   ├── Dockerfile
+│   └── requirements.txt
+├── tests/
 ├── docker-compose.yml
-
-├── Makefile / scripts/
-
+├── docker-compose.airflow.yml
 ├── requirements.txt
-
-└── .env.example
-
+├── Makefile
+└── README.md
 ```
 
-`warehouse/snowflake/` is implemented. `warehouse/dimensions/`, `warehouse/facts/`, and `warehouse/sql/` remain placeholders. `airflow/` now contains an orchestration DAG and a separate optional Docker Compose configuration; the Airflow runtime has not yet been verified. `powerbi/` remains a placeholder. `pyspark/jobs/feature_aggregations.py` is the Spark feature job; the directory `pyspark/` is not the PySpark library. `mining/forecasting/` is implemented.
+The dimensions, facts, and general warehouse SQL directories remain placeholders for a future dimensional warehouse implementation. The existing Snowflake loader publishes analytical snapshots; it does not yet implement a complete star-schema warehouse.
 
-## Make / scripts
-| Target | Action |
+## Implemented Data Mining Modules
 
-|--------|--------|
+### 1. ETL and Feature Engineering
 
-| `make setup` / `scripts/setup.ps1` | venv + backend deps + frontend npm install |
+**Location:** `etl/transform/`, `etl/pipelines/`
 
-| `make run-backend` / `scripts/run-backend.ps1` | `uvicorn app.main:app --reload` |
+The Pandas pipeline cleans input datasets, validates their structure and relationships, generates a validation report, and creates processed Parquet datasets.
 
-| `make run-frontend` / `scripts/run-frontend.ps1` | `npm run dev` |
+Features include:
 
-| `make run-etl` / `scripts/run-etl.ps1` | Seed CSVs. This is not the transform pipeline |
+- Missing-value and duplicate-key handling.
+- Referential integrity and business-rule validation.
+- Order outlier detection and capped analytical values.
+- Customer purchasing features and restaurant performance features.
+- Reference-date-aware features that exclude future events.
 
-| `make test` / `scripts/test.ps1` | pytest from `backend/` only |
+The pipeline writes `validation_report.json` and processed entity and feature files. Critical validation failures stop feature generation.
 
-`scripts/run-etl.ps1` runs `python etl\load\seed.py --csv-only`. That regenerates and overwrites `data/sample`. The transform pipeline is a different command, `python -m etl.pipelines.run_transform`, which only reads the existing sample CSVs.
+### 2. Sentiment Analysis
 
-`scripts/test.ps1` changes into `backend/` and runs `pytest -q`. It collects `backend/tests/`, including `test_analytics.py`. It does not collect the root `tests/` modules (`test_transform.py`, `test_sentiment.py`, `test_clustering.py`, `test_association.py`, `test_churn.py`, `test_recommendation.py`, `test_forecasting.py`, `test_snowflake_load.py`, `test_spark_features.py`). The root suite and its counts are in [Tests](#tests).
+**Location:** `mining/sentiment/`
 
-## Prerequisites
-- Docker & Docker Compose
+Implemented capabilities:
 
-- Python 3.11+ (for local seed / API outside Docker)
+- Overall sentiment scoring with VADER.
+- Positive, negative, neutral, and invalid classifications.
+- Aspect sentiment for food, service, ambience, and price using a keyword lexicon.
+- Sentiment aggregation by restaurant, city, cuisine, and month.
+- Optional transformer-based scoring using `cardiffnlp/twitter-roberta-base-sentiment-latest`.
 
-- PostgreSQL reachable at the URL in `.env` (provided by Compose)
+VADER is the default. Transformer inference is an optional backend selected through `SENTIMENT_MODEL=transformer`.
 
-## Quick start
-### 1. Configure environment
-```bash
+The transformer was smoke-tested on five hand-written texts. This was not an accuracy evaluation on the project's 3,000 reviews. Aspect labels are lexicon-based rather than predictions from a trained aspect model.
 
-cp .env.example .env
+### 3. Customer Segmentation
 
-```
+**Location:** `mining/clustering/`
 
-Edit `.env` if needed. Defaults work with the Compose Postgres service when the API runs on the host:
+Customers are grouped using purchasing behavior and feedback features such as recency, order frequency, total spend, average order value, rating, and sentiment.
 
-```
+The module evaluates K-Means, agglomerative clustering, and DBSCAN using clustering-quality metrics. Labels such as `high-value loyal` and `inactive/at-risk` are descriptive interpretations of cluster behavior, not a validated customer taxonomy.
 
-DATABASE_URL=postgresql+psycopg2://foodpulse:foodpulse@localhost:5432/foodpulse
+### 4. Association Rule Mining
 
-SECRET_KEY=change-me-to-a-long-random-secret
+**Location:** `mining/association/`
 
-```
+The module uses Apriori from `mlxtend` to discover food items that frequently appear together in completed orders.
 
-### 2. Start Postgres + API with Docker Compose
-```bash
+Metrics include:
 
-docker compose up --build -d
+- Support and support count.
+- Confidence.
+- Lift.
+- Leverage.
+- Conviction.
 
-# or: cd docker && docker compose up --build -d
+Both global mining and optional restaurant-specific mining are supported. Food-item IDs distinguish catalog entries that share the same display name. Association indicates co-occurrence, not causation.
 
-```
+### 5. Customer Inactivity and Churn-Risk Analysis
 
-- API: http://localhost:8000
+**Location:** `mining/churn/`
 
-- Interactive docs: http://localhost:8000/docs
+The module calculates inactivity from the last completed order and assigns rule-based risk categories.
 
-- Postgres: `localhost:5432` (user/password/db: `foodpulse`)
+It also considers order frequency, purchase gaps, changes in recent activity, ratings, and sentiment. The risk score is a capped heuristic, **not a calibrated probability of customer churn**. The categories do not establish that a customer has permanently left.
 
-### 3. Install Python deps (host) and seed data
-From the project root:
+### 6. Personalized Recommendations
 
-```bash
+**Location:** `mining/recommendation/`
 
-python -m venv .venv
+The recommendation engine generates food-item and restaurant rankings using:
 
-# Windows
+- Customer purchase history.
+- Cuisine preference.
+- Association-rule strength.
+- Restaurant quality.
+- Familiarity and popularity.
+- A cold-start scoring approach for limited purchase histories.
 
-.venv\Scripts\activate
+The module produces ranked recommendations and reason descriptions. Scores represent ranking strength, not purchase probabilities. Holdout evaluation is implemented, although the observed hit rates on the sample dataset were low.
 
-# macOS / Linux
+### 7. Demand Forecasting
 
-# source .venv/bin/activate
+**Location:** `mining/forecasting/`
 
-pip install -r backend/requirements.txt
+The forecasting module predicts completed-order demand at restaurant level and food-item quantity demand.
 
-python etl/load/seed.py
+Supported models:
 
-```
+- Ridge regression.
+- Seasonal-naive baseline.
 
-This generates about 50 restaurants, 500 customers, 5,000 orders, and 3,000 reviews, writes CSVs under `data/sample/`, and loads them into PostgreSQL. `python etl/load/seed.py --csv-only` writes the CSVs and does not load the database. Both forms overwrite `data/sample`.
+The implementation supports daily and weekly aggregation, chronological holdout evaluation, and forward forecasts. It reports MAE, RMSE, and WAPE.
 
-### 4. Run the API locally (optional)
-```bash
+Forecasts are clipped at zero. The current output does not include prediction intervals, and sparse demand can result in high WAPE values. Results should not be treated as a production-ready staffing or purchasing plan.
 
-cd backend
+## PySpark Feature Engineering
 
-uvicorn app.main:app --reload --host 0.0.0.0 --port 8000
+**Location:** `pyspark/jobs/feature_aggregations.py`
 
-```
+A separate Spark job performs customer and restaurant feature aggregation from prepared Parquet datasets.
 
-Ensure Postgres is running (`docker compose up -d postgres` from `docker/`).
+Features:
 
-## React analytics dashboard
+- Completed-order filtering.
+- Reference-date-aware feature calculations.
+- Customer and restaurant feature outputs.
+- Restaurant activity summaries.
+- Optional restaurant sentiment counts.
 
-The dashboard presents existing ETL and data-mining outputs in a responsive React interface. FastAPI reads the processed Parquet files and returns analytics to the frontend. The dashboard does not retrain models, write or replace Parquet files, or connect directly to Snowflake.
+The standalone job writes to `data/processed/spark_features/` by default. It does not replace the existing Pandas ETL feature files, modify sample CSVs, or write to PostgreSQL.
 
-### Dashboard pages
+**Verification:** The job was run locally on 12 October 2026. It returned 500 customer rows and 50 restaurant rows, and the shared numeric feature columns matched the Pandas outputs for the same reference date.
 
-- **Overview:** processed-data counts, completed orders, average order value, and stored review sentiment distribution.
-- **Restaurants:** completed-order count, spend, average order value, and stored average rating where available; includes cuisine filtering and sorting.
-- **Sentiment:** visualizes stored positive, negative, and neutral review outputs.
-- **Segments:** presents customer-clustering results from existing outputs.
-- **Churn:** displays existing churn-risk classifications as model outputs, not confirmed future behavior.
-- **Recommendations:** displays existing food and restaurant recommendations with ranking scores.
-- **Association rules / Insights:** presents mined relationships and available support, confidence, and lift values.
-- **Forecast:** compares stored historical values with stored predictions; it does not fit a forecasting model during page rendering.
+## Snowflake Analytics Integration
 
-The Customers page was left unchanged. Empty or unavailable operational database statistics are shown separately from processed-file analytics; the dashboard does not treat PostgreSQL as a substitute for the Parquet data.
+**Location:** `warehouse/snowflake/`
 
-### Dashboard API
+The Snowflake loader publishes approved processed Parquet datasets into the `FOODPULSE.ANALYTICS` schema.
 
-- `GET /analytics/overview` — processed-Parquet overview metrics and sentiment distribution.
-- Existing list and operational statistics endpoints remain separate, including `GET /stats/overview`.
+Implemented capabilities:
 
-Example local verification:
+- Configuration through environment variables.
+- Local file and schema validation before connecting.
+- Dry-run planning and table row counts.
+- Optional connection verification.
+- Parameterized row loading.
+- Temporary staging tables and snapshot replacement.
+- Row-count verification and transaction rollback for failed table loads.
+- Sanitized error reporting.
+
+The default mode is a dry run. A live load requires explicit use of `--execute` and valid Snowflake credentials and permissions.
+
+A previous live account test completed the analytical load. Automated tests use mocked connections and do not require Snowflake credentials.
+
+**Current limitation:** The existing loader publishes analytical snapshots, not a fully implemented dimensional star schema. The `warehouse/dimensions/`, `warehouse/facts/`, and `warehouse/sql/` directories still need their planned implementation.
+
+## Airflow Workflow Orchestration
+
+**Location:** `airflow/dags/`, `docker-compose.airflow.yml`
+
+The `foodpulse_pipeline` DAG coordinates the existing processing commands rather than reimplementing the ETL and mining logic.
+
+### Workflow
+
+1. **Input validation:** Checks the required sample CSV files and resolves the reference date.
+2. **ETL and feature engineering:** Runs the Pandas transform pipeline.
+3. **Parallel processing:** Runs sentiment analysis, association rule mining, and demand forecasting.
+4. **Customer analysis:** Runs clustering and inactivity-risk analysis after sentiment processing.
+5. **Recommendations:** Uses association rules and sentiment outputs to generate recommendations.
+6. **Optional Spark processing:** Runs only when `FOODPULSE_SPARK=1`.
+7. **Optional Snowflake publishing:** Runs only when `FOODPULSE_SNOWFLAKE_LOAD=1`.
+8. **Output validation:** Checks expected output files after the upstream tasks finish.
+
+The Snowflake task defaults to a dry run. A live warehouse load additionally requires `FOODPULSE_SNOWFLAKE_EXECUTE=1`.
+
+### Airflow Runtime
+
+The optional Docker Compose setup includes:
+
+- Airflow webserver.
+- Airflow scheduler.
+- PostgreSQL metadata database.
+- LocalExecutor configuration.
+- A mounted DAG directory and FoodPulse project directory.
+
+The Airflow UI is available at [http://localhost:8080](http://localhost:8080) when the services are running and initialization succeeds.
+
+### Verification Status
+
+The FoodPulse Airflow workflow was manually executed and verified on 19 October 2026.
+
+- The `foodpulse_pipeline` DAG was visible in the Airflow UI, and the scheduler and webserver were running.
+- The manual run completed successfully for input validation, ETL and feature engineering, sentiment analysis, demand forecasting, customer clustering, churn-risk analysis, association rule mining, personalized recommendations, the Snowflake dry-run task, and final output validation.
+- The `spark_features` task was skipped because optional Spark processing was disabled. This is expected behavior when `FOODPULSE_SPARK` is not enabled.
+- The association rule mining task completed successfully after reducing Apriori's memory usage with `low_memory=True`.
+- The Snowflake task completed in **dry-run mode**. It validated and planned the analytical publishing operation; this successful task does **not** mean that data was written to Snowflake.
+- Final output validation succeeded.
+
+The successful DAG run verifies orchestration of the configured workflow. It does not establish that this particular DAG run performed a live Snowflake load.
+
+### Important Execution Warning
+
+The DAG runs the ETL pipeline into `data/processed/`. That operation regenerates processed Parquet outputs and can replace existing files. Preserve important outputs or use an isolated copy of the data before triggering a full run.
+
+Spark and Snowflake publishing are controlled by environment variables:
+
+- Set `FOODPULSE_SPARK=1` only when intentionally running the optional Spark task.
+- Set `FOODPULSE_SNOWFLAKE_LOAD=1` to enable the Snowflake publishing task.
+- Keep `FOODPULSE_SNOWFLAKE_EXECUTE` unset unless an intentional live Snowflake load is planned.
+
+The Snowflake task defaults to dry-run mode. Do not enable live execution unintentionally.
+
+## React Analytics Dashboard
+
+**Location:** `frontend/`, `backend/app/`
+
+The dashboard presents stored analytics through a React and TypeScript interface, interactive Plotly charts, and FastAPI endpoints.
+
+### Dashboard Pages
+
+- **Overview:** Dataset counts, completed-order revenue, average order value, ratings, sentiment mix, segment distributions, churn categories, and forecast summaries.
+- **Restaurants:** Performance rankings, cuisine filters, rating-versus-volume comparisons, and restaurant details.
+- **Sentiment:** Overall sentiment distribution, monthly trends, aspect sentiment, and restaurant comparisons.
+- **Segments:** Customer segment counts and behavioral summaries.
+- **Churn:** Inactivity, risk categories, and stored heuristic scores.
+- **Recommendations and association:** Stored food and restaurant recommendations, frequent itemsets, and association rules.
+- **Forecast:** Historical demand and forward predictions for the selected restaurant and model.
+- **Customers and Insights:** Existing routes that still have placeholder or link-hub behavior.
+
+### Dashboard Design
+
+The dashboard reads existing processed Parquet data through FastAPI. It does not retrain mining models, rescore reviews, rewrite Parquet files, or open a Snowflake connection during page loads.
+
+PostgreSQL operational counts are reported separately from processed-dataset analytics. Empty operational tables must not be interpreted as proof that the processed analytics datasets are empty.
+
+### Verification
+
+On 19 October 2026:
+
+- Dashboard API tests: **12 passed** across the checked analytics test files.
+- The frontend TypeScript check and Vite production build succeeded.
+- Browser checks covered the main analytics pages and a narrow mobile viewport.
+- The Plotly bundle remains relatively large, producing a Vite chunk-size warning.
+
+The dashboard is implemented and locally verified. Power BI reports are not implemented.
+
+## PostgreSQL and FastAPI
+
+The operational backend uses FastAPI, SQLAlchemy, and PostgreSQL. It includes database models, authentication infrastructure, and API endpoints for operational entities and statistics.
+
+Representative endpoints:
+
+| Method | Endpoint | Purpose |
+|---|---|---|
+| GET | `/health` | Application health |
+| GET | `/restaurants` | List restaurants |
+| GET | `/restaurants/{id}` | Restaurant details |
+| GET | `/customers` | List customers |
+| GET | `/stats/overview` | Operational database statistics |
+| GET | `/analytics/overview` | Processed analytics summary |
+| GET | `/analytics/restaurants` | Restaurant analytics |
+| GET | `/analytics/sentiment` | Stored sentiment analysis |
+| GET | `/analytics/segments` | Customer segment summaries |
+| GET | `/analytics/churn` | Customer inactivity-risk summaries |
+| GET | `/analytics/association` | Stored association rules |
+| GET | `/analytics/forecast` | Stored demand forecasts |
+
+The remaining analytics endpoints cover recommendations, itemsets, and restaurant-specific forecast details. See the FastAPI interactive documentation at `/docs` when the backend is running.
+
+## Setup and Local Execution
+
+### Prerequisites
+
+- Python 3.11 or later for the local application components.
+- Node.js and npm for the React frontend.
+- PostgreSQL for operational database functionality.
+- Docker Desktop and Docker Compose for containerized services and the optional Airflow runtime.
+- Java and PySpark for standalone Spark processing.
+- A configured Snowflake account only when a live warehouse connection is required.
+
+### 1. Configure the Environment
+
+From the repository root, create the local environment file:
 
 ```powershell
-Invoke-WebRequest -UseBasicParsing http://127.0.0.1:8000/analytics/overview
+Copy-Item .env.example .env
 ```
 
-The endpoint was manually verified with HTTP `200 OK`. On the checked sample it returned 50 restaurants, 500 customers, 5,000 orders, 3,000 reviews, 4,405 completed orders, and an average order value of approximately 1,147.49. The sentiment output contained 2,301 positive, 514 negative, and 185 neutral reviews. These are results from the checked local dataset, not guaranteed values for every dataset.
+Edit `.env` to configure the database connection, secret key, and any optional Snowflake settings. Never commit `.env` or credentials.
 
-### Run the dashboard locally
+### 2. Install Python Dependencies
 
-From the repository root, start the backend in one terminal:
+```powershell
+python -m venv .venv
+.\.venv\Scripts\Activate.ps1
+python -m pip install -r requirements.txt
+python -m pip install -r backend/requirements.txt
+```
+
+The root requirements file contains the data processing and mining dependencies. The backend requirements file contains the API dependencies.
+
+### 3. Start PostgreSQL and the Backend
+
+Use the repository's existing Docker Compose configuration for the operational database and services:
+
+```powershell
+docker compose up --build -d
+```
+
+Check the current Compose configuration if you want to start only a particular service. Ensure the database URL in `.env` matches the database's actual host port.
+
+To start the backend locally from the repository root:
 
 ```powershell
 .\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000 --app-dir backend
 ```
 
-Start the frontend in a second terminal:
+Open [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) to inspect the API.
+
+### 4. Generate Processed Analytics
+
+The sample CSV files are already part of the project's data workflow. The transform command reads the existing files and writes processed outputs:
+
+```powershell
+.\.venv\Scripts\python.exe -m etl.pipelines.run_transform --reference-date 2026-10-11
+```
+
+This command writes into `data/processed/` by default and can replace existing processed outputs.
+
+**Do not run `scripts/run-etl.ps1` when your goal is merely to regenerate processed Parquet.** That script runs the CSV seeding workflow and can overwrite `data/sample/`.
+
+### 5. Run the React Dashboard
+
+In a second terminal:
 
 ```powershell
 cd frontend
+npm install
 npm run dev
 ```
 
-Open `http://127.0.0.1:5173`. FastAPI interactive documentation is available at `http://127.0.0.1:8000/docs`.
+Open [http://localhost:5173](http://localhost:5173).
 
-### Dashboard verification
+The dashboard requires the backend and the appropriate processed Parquet outputs to be available.
 
-The dashboard analytics tests were reported as **9 passed** using:
+## Running Individual Modules
+
+Run commands from the repository root.
 
 ```powershell
-.\.venv\Scripts\python.exe -m pytest backend\tests\test_analytics.py -q
+# VADER sentiment analysis
+.\.venv\Scripts\python.exe -m mining.sentiment.run_analysis
+
+# Customer segmentation
+.\.venv\Scripts\python.exe -m mining.clustering.run_segmentation --seed 42
+
+# Association rule mining
+.\.venv\Scripts\python.exe -m mining.association.run_mining --min-support 0.003 --min-confidence 0.3
+
+# Inactivity / churn-risk analysis
+.\.venv\Scripts\python.exe -m mining.churn.run_analysis --reference-date 2026-10-11 --inactivity-days 90 --at-risk-days 45
+
+# Personalized recommendations
+.\.venv\Scripts\python.exe -m mining.recommendation.run_recommendations --reference-date 2026-10-11
+
+# Demand forecasting
+.\.venv\Scripts\python.exe -m mining.forecasting.run_forecast --reference-date 2026-10-11 --horizon 7
+
+# Snowflake dry run
+.\.venv\Scripts\python.exe -m warehouse.snowflake.run_load --dry-run
 ```
 
-The frontend production build completed successfully using:
+The mining modules use processed Parquet inputs and write their analytical outputs to the processed-data directory unless configured otherwise.
+
+### Optional Transformer Sentiment
+
+Set `SENTIMENT_MODEL=transformer` in the environment to use the transformer backend. Leave it unset or set it to `vader` for the default VADER backend.
+
+Transformer inference is optional and can require additional dependencies and model downloads. The dashboard does not run transformer inference automatically.
+
+### Optional PySpark Job
+
+The standalone Spark job writes to a separate output directory:
+
+```powershell
+.\.venv\Scripts\python.exe pyspark\jobs\feature_aggregations.py --input-dir data\processed --output-dir data\processed\spark_features --reference-date 2026-10-11
+```
+
+This preserves the original Pandas ETL files.
+
+## Testing and Verification
+
+The following commands cover the main implemented modules.
+
+### Data Mining and ETL
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests\test_transform.py tests\test_sentiment.py tests\test_clustering.py tests\test_association.py tests\test_churn.py tests\test_recommendation.py tests\test_forecasting.py -q
+```
+
+The documented run reported **67 passed** on 11 October 2026.
+
+### Snowflake Loader
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests\test_snowflake_load.py -q
+```
+
+The documented run reported **21 passed**. These tests use mocked connections and temporary data, not a live Snowflake account.
+
+### PySpark
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests\test_spark_features.py -q
+```
+
+The documented run reported **4 passed**.
+
+### Airflow DAG
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest tests\test_airflow_dag.py -q
+```
+
+The documented local result was **8 passed, 1 skipped**. The skip was due to Airflow not being installed in the host project's Python interpreter. Docker-based runtime checks are separate from this test result.
+
+### Dashboard
+
+```powershell
+.\.venv\Scripts\python.exe -m pytest backend\tests\test_dashboard_metrics.py backend\tests\test_analytics.py -q
+```
+
+The documented run reported **12 passed**.
+
+For the frontend production build:
 
 ```powershell
 cd frontend
 npm run build
 ```
 
-Vite reported a bundle-size warning because the minified JavaScript chunk exceeded 500 kB; the build still succeeded. Consider code-splitting as a future optimization. Browser checks confirmed that the overview, restaurant, sentiment, segment, churn, recommendation, and forecast pages rendered stored results. At a 390px viewport, the navigation wraps into a horizontal bar.
+The documented build completed successfully. Test counts above describe specific recorded runs; they are not a guarantee that every test will pass after subsequent changes.
 
-Airflow orchestration code is present, but the scheduler/UI and a real DAG run remain unverified. Power BI reports are not implemented. The transformer backend was smoke-tested on five hand-written texts; accuracy on the 3,000 reviews was not measured.
+A later full-project test run reported **123 passed, 1 skipped**. Test results may change as the project evolves.
 
-## API endpoints (Module 1)
-| Method | Path | Description |
+## Data Safety and Configuration
 
-|--------|------|-------------|
+- Keep `.env` and all database credentials out of version control.
+- Do not commit passwords, access tokens, or sensitive customer data.
+- `data/processed/` is generated data and is gitignored.
+- The ETL pipeline can replace processed files. Preserve or copy important outputs before a full rerun.
+- The Airflow DAG invokes existing processing commands and is not a separate implementation of each algorithm.
+- Keep `FOODPULSE_SPARK` disabled unless the optional Spark task is deliberately being tested.
+- `FOODPULSE_SNOWFLAKE_LOAD` controls whether the Snowflake publishing task runs in Airflow.
+- Keep `FOODPULSE_SNOWFLAKE_EXECUTE` unset unless an intentional live Snowflake load is planned.
+- Snowflake DDL and individual table transactions are not one atomic transaction across the entire 16-table load.
+- The local dashboard uses processed Parquet data; PostgreSQL statistics are displayed separately.
 
-| `GET` | `/health` | Liveness / app info |
+## Current Project Status
 
-| `GET` | `/restaurants` | List restaurants (`skip`, `limit`) |
-
-| `GET` | `/restaurants/{id}` | Restaurant detail |
-
-| `GET` | `/customers` | List customers (`skip`, `limit`) |
-
-| `GET` | `/stats/overview` | Totals + average rating |
-
-```bash
-
-curl http://localhost:8000/health
-
-curl http://localhost:8000/stats/overview
-
-```
-
-## Database entities
-`users`, `restaurants`, `customers`, `food_items`, `orders`, `order_items`, `reviews`, `locations`, `customer_activity`
-
-Reviews include `rating`, `review_text`, and `created_at`. Orders include `customer_id`, `restaurant_id`, `total_amount`, `discount_used`, and `order_date`.
-
-`review_sentiment` (`review_id` primary key, plus overall and aspect columns) is created with the other SQLAlchemy models. It stays empty unless sentiment analysis is run with `--persist`. After the initial sentiment run it had _**_****zero****** rows.
-
-## Data cleaning, validation, and features
-Pandas pipeline in `etl/transform/`, entry point `etl/pipelines/run_transform.py`. It reads `data/sample/*.csv`, cleans each table, writes a JSON validation report, and stops when that report contains critical errors. Warnings do not stop it. Source CSVs are only read.
-
-`pyarrow` is required to write Parquet. It is in the root `requirements.txt`, not `backend/requirements.txt`. If the virtualenv was installed from the backend file only:
-
-```powershell
-
-.\.venv\Scripts\python.exe -m pip install "pyarrow>=15.0"
-
-```
-
-From the repository root:
-
-```powershell
-
-.\.venv\Scripts\python.exe -m etl.pipelines.run_transform --reference-date 2026-10-11
-
-```
-
-`--reference-date` is a UTC calendar date (`YYYY-MM-DD`). If omitted, the pipeline uses `FEATURE_REFERENCE_DATE` when set, otherwise the current UTC date. Optional flags: `--sample-dir`, `--output-dir` (default `data/processed`).
-
-`USE_SPARK=1` loads `pyspark/jobs/feature_aggregations.py` by file path and uses it only for the feature tables inside the ETL run. The default path does not import PySpark. The standalone job below is the verified way to run Spark without replacing those ETL files.
-
-### PySpark feature job
-`pyspark/jobs/feature_aggregations.py` reads prepared Parquet from `--input-dir` (default `data/processed`) and writes a new directory. It does not modify `data/sample`, PostgreSQL, or the original ETL Parquet files. Required inputs are `customers.parquet`, `restaurants.parquet`, `orders.parquet`, and `reviews.parquet`. `review_sentiment.parquet` is optional.
-
-Shared feature columns match `etl/transform/feature_engineering.py`. Completed orders are `status` lowercased to `completed`, events after the reference date are excluded, and `sentiment_label` and `sentiment_score` stay null. Spark also writes `restaurant_activity.parquet` (restaurant spend, average order value, and distinct customer count), which the Pandas feature file does not contain. When review sentiment is present, it writes `restaurant_sentiment_counts.parquet` with positive, negative, neutral, and invalid counts and proportions. Those counts are not copied into `restaurant_features.parquet`.
-
-Prerequisites: Java and `pyspark` from the root `requirements.txt` (`pyspark>=3.5`). On 12 October 2026 this machine used Java 25.0.3 and PySpark 4.2.0. Spark warned that `winutils.exe` was missing and still finished. Install PySpark into the project virtualenv if it is not already there:
-
-```powershell
-
-.\.venv\Scripts\python.exe -m pip install "pyspark>=3.5"
-
-```
-
-Run the job from the repository root. The default output is `data/processed/spark_features`, which is not the ETL feature files:
-
-```powershell
-
-.\.venv\Scripts\python.exe pyspark\jobs\feature_aggregations.py --input-dir data\processed --output-dir data\processed\spark_features --reference-date 2026-10-11
-
-```
-
-Outputs in that directory: `customer_features.parquet`, `restaurant_features.parquet`, `restaurant_activity.parquet`, and, when the sentiment file exists, `restaurant_sentiment_counts.parquet`.
-
-Tests use temporary Parquet files and do not read `data/processed`:
-
-```powershell
-
-.\.venv\Scripts\python.exe -m pytest tests\test_spark_features.py -q
-
-```
-
-On 12 October 2026 that command reported _**_****4 passed******. The same day, the job above was run with `--output-dir` set to a temporary directory. Spark returned 500 customer rows and 50 restaurant rows. The shared numeric feature columns matched the existing Pandas `customer_features.parquet` and `restaurant_features.parquet` for reference date 2026-10-11. The original ETL files were not replaced. `restaurant_sentiment_counts.parquet` contained 3,000 scored reviews. Airflow does not call this job.
-
-### Observed on the 2026-10-11 sample run
-These figures are from that run of `--reference-date 2026-10-11`. They are not guaranteed for another date or another sample extract. `validation_report.json` had `"status": "warning"`, `"reference_date": "2026-10-11"`, and no critical errors.
-
-| Dataset | Rows checked | Report status |
-
-|---------|----------------|---------------|
-
-| `locations` | 20 | passed |
-
-| `users` | 5 | passed |
-
-| `restaurants` | 50 | passed |
-
-| `food_items` | 587 | passed |
-
-| `customers` | 500 | warning |
-
-| `orders` | 5,000 | warning |
-
-| `order_items` | 14,995 | passed |
-
-| `reviews` | 3,000 | passed |
-
-| `customer_activity` | 1,241 | passed |
-
-- `customers`: optional `gender` missing on _**_****138****** rows. The value is left missing. Identifiers are not invented.
-
-- `orders`: _**_****25****** `total_amount` values fall outside Tukey 1.5-IQR fences. `total_amount` is unchanged. `total_amount_capped` is clipped to the fences. The lower fence is held at 0. That run recorded `outlier_lower_fence` 0, `outlier_upper_fence` 3188.86, and `outlier_method` `tukey_iqr_1.5_lower_fence_at_least_zero`. `is_total_outlier` marks the 25 rows.
-
-### Cleaning and validation
-Cleaning returns a new DataFrame. Duplicate primary keys (`id`) keep the first row. Distinct ids are kept even when other fields match. A missing `id` stays missing.
-
-Empty optional text becomes missing. The only numeric fill is `orders.discount_used`: a missing discount becomes 0, matching the ORM default. Review text is HTML-stripped, trimmed, and lowercased. Negations, contrast words, and punctuation stay. Timestamps use Pandas `format="mixed"`. Eleven review `created_at` values in this sample include microseconds.
-
-Critical checks raise `CriticalValidationError` after the JSON report is written, and feature files are not written. They cover required columns, missing or duplicate primary keys, required values, foreign keys (`orders` to `customers` and `restaurants`, and the other model relationships, with nullable `reviews.order_id`), integer ratings 1–5, negative prices or totals, non-positive `order_items.quantity`, and dates outside the accepted range (events from 1990-01-01 through 2100-01-01; dates of birth from 1900-01-01). Dates after the reference date are warnings.
-
-### Feature definitions
-`customer_features.parquet` uses completed orders whose `order_date` is on or before the end of the reference date. Cancelled and pending orders are excluded. Recency is calendar days from the last completed order to `feature_reference_date`, null when there is no such order. Spend, order frequency, average order value, and discount usage rate use that same set. Spend is the sum of `orders.total_amount` and is not joined to `order_items`. Average rating and review frequency use reviews on or before the cutoff. Discount usage rate and average order value are null when the completed-order count is zero.
-
-| `restaurant_features.parquet` column | Definition |
-
-|--------|------------|
-
-| `avg_rating` | Mean rating of reviews on or before the reference date |
-
-| `rolling_avg_rating` | Mean rating in the 90 days ending at the reference date; null when that window has no reviews |
-
-| `review_volume` | Count of reviews on or before the reference date |
-
-| `order_volume` | Count of completed orders on or before the reference date |
-
-| `complaint_count` | Reviews in that set with `rating <= 2`. A rating heuristic, not model sentiment |
-
-| `sentiment_label`, `sentiment_score` | Left null. Scored sentiment is in `review_sentiment.parquet` |
-
-Both feature tables include `feature_reference_date`. Feature values change if `--reference-date` changes.
-
-### Generated files
-`data/processed/` is gitignored. The pipeline writes:
-
-- `locations.parquet`, `users.parquet`, `restaurants.parquet`, `food_items.parquet`, `customers.parquet`, `orders.parquet`, `order_items.parquet`, `reviews.parquet`, `customer_activity.parquet`
-
-- `customer_features.parquet`, `restaurant_features.parquet`
-
-- `validation_report.json`
-
-Order tables also carry `is_total_outlier`, `total_amount_capped`, `outlier_lower_fence`, `outlier_upper_fence`, and `outlier_method`.
-
-## Sentiment analysis
-`mining/sentiment/` scores processed reviews. The default command reads `data/processed/reviews.parquet`, `restaurants.parquet`, and `locations.parquet`. It does not modify `data/sample` or those cleaned entity files. `vaderSentiment` and `matplotlib` are in the root `requirements.txt`, not `backend/requirements.txt`.
-
-```powershell
-
-.\.venv\Scripts\python.exe -m pip install "vaderSentiment>=3.3" "matplotlib>=3.8"
-
-.\.venv\Scripts\python.exe -m mining.sentiment.run_analysis
-
-```
-
-| Flag | Default | Role |
-
-|------|---------|------|
-
-| `--processed-dir` | `data/processed` | Input Parquet and sentiment Parquet output |
-
-| `--artifacts-dir` | `mining/sentiment/artifacts` | Evaluation JSON and confusion-matrix image |
-
-| `--persist` | off | Upsert into PostgreSQL `review_sentiment` |
-
-The default scorer is VADER. `SENTIMENT_MODEL` must be `vader` or `transformer`; any other value raises an error. The default command does not import `transformers`. The initial VADER run did not pass `--persist`.
-
-`SENTIMENT_MODEL=transformer` loads `cardiffnlp/twitter-roberta-base-sentiment-latest` on CPU unless `SENTIMENT_TRANSFORMER_MODEL` or `SENTIMENT_DEVICE` is set. The published config maps class 0 to `negative`, 1 to `neutral`, and 2 to `positive`. Those names are read from the loaded config. Empty text stays `invalid` with a null score. For this backend, `overall_score` is the predicted-class probability from 0 to 1, not a VADER compound. On 12 October 2026 a CPU smoke test returned positive 0.987, negative 0.951, and neutral 0.932 for three hand-written sentences, and `invalid` for empty text. The loader reported unexpected `roberta.pooler` weights; classification still ran. This is not an accuracy evaluation on the 3,000 reviews. Unset `SENTIMENT_MODEL`, or set it to `vader`, to use VADER again.
-
-Compound score `>= 0.05` is positive, `<= -0.05` is negative, and values strictly between those thresholds are neutral. Empty or non-text review text is `invalid` with a null score, not neutral. The sample run had no invalid rows.
-
-Aspects are food, service, ambience, and price (`food_sent`, `service_sent`, `ambience_sent`, `price_sent`). A keyword lexicon finds mentions. Clauses split on `.`, `!`, `;`, `?`, and contrast words (`but`, `however`, `although`, `though`, `yet`, `while`). Polarity is counted in the clauses that mention the aspect, with a three-token negation window (`not`, `never`, `no`, and similar). `not mentioned` means the aspect was not found. `neutral` means it was mentioned and the lexicon score was balanced. Example: “The biryani was amazing, but the service was extremely slow.” is food positive, service negative, ambience and price `not mentioned`. VADER’s overall label for that sentence is positive. VADER alone scores “extremely slow” as neutral, which is why aspect polarity uses the lexicon.
-
-Text is HTML-stripped, whitespace-collapsed, and lowercased. Tokens keep punctuation. Lemmatization uses spaCy `en_core_web_sm` or NLTK WordNet when that data is already installed. Neither was available for the initial run, so the offline lemmatizer was used. No external API is called.
-
-`evaluate()` compares VADER labels with rating proxies: ratings 1–2 negative, 3 neutral, 4–5 positive. These are weak proxy labels, not human annotation. Missing or out-of-range ratings are skipped. Classes with no support use zero precision and recall. The confusion matrix is `mining/sentiment/artifacts/confusion_matrix.png` (rows: rating proxy; columns: predicted label; order negative, neutral, positive).
-
-Trends use `reviews.id`, `reviews.restaurant_id`, `reviews.created_at`, `restaurants.cuisine_type`, `restaurants.location_id`, and `locations.city`. Restaurant and location rows are deduped on `id` before the join. Each group reports `review_count`, positive, negative, neutral, and invalid counts, and `mean_score`.
-
-### Observed on the 2026-10-11 sample run
-All _**_****3,000****** processed reviews were scored: _**_****positive 2,301****,&#x20;**_**_******&#x6E;egative 514******,&#x20;**_**_******&#x6E;eutral 185****. Aggregations wrote 50 restaurant groups, 17 city groups, 10 cuisine groups, and 13 month groups (`YYYY-MM`).
-
-| Aspect | positive | negative | neutral | not mentioned |
-
-|--------|----------|----------|---------|----------------|
-
-| food | 1,374 | 139 | 147 | 1,340 |
-
-| service | 877 | 406 | 410 | 1,307 |
-
-| price | 1,182 | 644 | 196 | 978 |
-
-| ambience | 0 | 0 | 0 | 3,000 |
-
-The sample review text has no recognized ambience mentions. Proxy metrics in `evaluation.json`, rounded to three decimals: accuracy _**_****0.765****, macro precision&#x20;**_**_******&#x30;.665******, macro recall&#x20;**_**_******&#x30;.610******, macro F1&#x20;**_**_******&#x30;.610****. All 3,000 rows were evaluated. The neutral proxy is the weak class (support 595, recall about 0.104). Every positive proxy row was predicted positive (recall 1.0).
-
-### Output files
-- `data/processed/review_sentiment.parquet` — `review_id`, `overall_sentiment`, `overall_score`, `food_sent`, `service_sent`, `ambience_sent`, `price_sent`, `analyzed_at`
-
-- `data/processed/sentiment_by_restaurant.parquet`, `sentiment_by_city.parquet`, `sentiment_by_cuisine.parquet`, `sentiment_by_month.parquet`
-
-- `mining/sentiment/artifacts/evaluation.json`, `confusion_matrix.png`
-
-`--persist` upserts by `review_id` and creates `review_sentiment` only if it is missing. It does not drop or truncate other tables. The initial run did not use it. Tests check the upsert on temporary SQLite, not the project PostgreSQL database.
-
-Aspect labels are a lexicon, not a trained aspect model. `restaurant_features.parquet` still leaves `sentiment_label` and `sentiment_score` null.
-
-## Customer segmentation
-`mining/clustering/` groups customers by purchasing behavior. It reads processed Parquet and writes new files. It does not modify sample CSVs, existing Parquet inputs, or PostgreSQL.
-
-```powershell
-
-.\.venv\Scripts\python.exe -m mining.clustering.run_segmentation --seed 42
-
-```
-
-Other flags: `--customers`, `--orders`, `--reviews`, `--sentiment`, `--output-dir`, `--artifacts-dir`. Defaults are the processed Parquet paths, `data/processed`, and `mining/clustering/artifacts`.
-
-The seven model features are scaled with a fitted `StandardScaler` after each column is clipped to its 1st and 99th percentiles. Identifiers, names, emails, and phone numbers are not features. Cancelled and pending orders are excluded. Order totals are not joined to line items.
-
-| Feature | Role |
-
-|---------|------|
-
-| `recency_days` | Days since the last completed order |
-
-| `order_frequency` | Count of completed orders |
-
-| `total_spend` | Sum of completed order totals |
-
-| `avg_order_value` | Mean completed order total |
-
-| `avg_discount` | Mean `discount_used` on completed orders on or before `2026-10-11`, from `orders.parquet`. `discount_usage_rate` is a share, not an amount |
-
-| `avg_rating` | Customer-level mean star rating |
-
-| `avg_sentiment_score` | Mean VADER `overall_score`, joined from `review_id` to `reviews.customer_id` and aggregated before any other join |
-
-### Observed on the 2026-10-11 sample run
-One customer had no rating and no sentiment score. Those two values were median-imputed in the model matrix only (`avg_rating` 3.6667, `avg_sentiment_score` 0.5596). That fill is not written back to the source files. 499 of 500 customers had a real sentiment score.
-
-K from 2 through 8 was evaluated. K-Means uses `n_init=10` and `random_state=42`. Agglomerative clustering uses Ward linkage. DBSCAN uses a median 5-neighbor distance and `min_samples=5`.
-
-- _**_****Silhouette****** (higher is better): fit versus the nearest other cluster.
-
-- _**_****Davies–Bouldin****** (lower is better): compactness relative to separation.
-
-- _**_****Calinski–Harabasz****** (higher is better): between-cluster scatter versus within-cluster scatter.
-
-The selection rule is the highest silhouette. K-Means is preferred only when its silhouette is within 0.01 of the leader. Fewer than two usable clusters makes a result ineligible and does not stop the run.
-
-| Model | Configuration | Silhouette | Davies–Bouldin | Calinski–Harabasz |
-
-|---|---|---:|---:|---:|
-
-| Agglomerative (selected) | K=2, Ward linkage | 0.226 | 2.016 | 95.98 |
-
-| K-Means | K=2 | 0.189 | 1.897 | 123.70 |
-
-| DBSCAN | eps=1.25, min_samples=5 | 0.176 | 1.021 | 8.80 |
-
-Agglomerative clustering was selected because the K-Means silhouette was not within 0.01 of 0.226. K-Means had a higher Calinski–Harabasz score at K=2. Separation is weak, and silhouette fell as K increased.
-
-Labels compare each cluster’s medians with the population. They are descriptive, not a validated taxonomy.
-
-| Segment | Customers | Share | Median recency | Median orders | Median spend |
-
-|---|---:|---:|---:|---:|---:|
-
-| High-value loyal | 368 | 73.6% | 27 days | 10 | 11,008.12 |
-
-| Inactive/at-risk | 132 | 26.4% | 86 days | 6 | 5,650.89 |
-
-Stored labels: `high-value loyal`, `inactive/at-risk`.
-
-### Artifacts
-- `data/processed/customer_segments.parquet` — `customer_id`, `cluster_id`, `segment_label`
-
-- `data/processed/customer_segment_summary.parquet`
-
-- `data/processed/customer_segmentation_metrics.json`
-
-- `mining/clustering/artifacts/customer_segments_pca.png`
-
-PCA is only for that plot. It is not a clustering feature. The table rounds the JSON metrics.
-
-## Association rule mining
-`mining/association/` finds food items that appear together in completed orders. A rule is an association, not a cause.
-
-Inputs: `orders.parquet`, `order_items.parquet`, `food_items.parquet`.
-
-- One basket per completed order. Status is compared after trimming and lowercasing, so `cancelled` and `pending` are excluded.
-
-- Basket key: `(restaurant_id, order_id)`. In this extract, order ids are unique across restaurants. The composite key still separates restaurants if an id were reused.
-
-- A line is kept only when the food item belongs to the same restaurant as the order.
-
-- The mining item is `food_item_id`. Names are labels. This catalog has 587 items and 68 distinct names.
-
-- Quantity is not support. Repeated lines for the same item in one order count once.
-
-- Customer ids, emails, and phone numbers are not mining inputs.
-
-Apriori (`mlxtend`) finds itemsets of every size that meets the support threshold. FP-Growth is not used. Support is the share of transactions in the scope that contain every item. Confidence of A → C is support(A ∪ C) / support(A). Lift is confidence(A → C) / support(C). Leverage is support(A ∪ C) − support(A) × support(C). Conviction is (1 − support(C)) / (1 − confidence); it is null when confidence is 1. Support is also stored as a count. For 4,405 global transactions and support 0.003, the minimum count is 14.
-
-```powershell
-
-.\.venv\Scripts\python.exe -m mining.association.run_mining --min-support 0.003 --min-confidence 0.3
-
-```
-
-| Argument | Default | Meaning |
-
-|---|---|---|
-
-| `--min-support` | 0.003 | Fraction of transactions in the scope. Greater than 0 and at most 1 |
-
-| `--min-confidence` | 0.3 | Minimum confidence. Same bounds |
-
-| `--min-lift` | omitted | Optional. When set, a finite number of at least 0 |
-
-| `--restaurant-specific` | off | Mine each restaurant on its own baskets |
-
-| `--min-restaurant-transactions` | 30 | Skip a restaurant below this many valid transactions |
-
-| `--orders`, `--order-items`, `--food-items`, `--output-dir` | `data/processed` | Input and output locations |
-
-The default support is 0.003 because the most frequent pair in the written rules occurs in 20 of 4,405 completed orders (support 0.004540). Support 0.01 would keep only single items. Invalid thresholds stop the command.
-
-### Observed on the 2026-10-11 sample run
-Global scope `all`, from `association_mining_metrics.json` and `association_rules.parquet`:
-
-| Measurement | Result |
-
-|---|---:|
-
-| Source orders | 5,000 |
-
-| Eligible completed orders | 4,405 |
-
-| Valid transactions | 4,405 |
-
-| Distinct food items | 587 |
-
-| Orders not completed | 595 |
-
-| Item rows on non-completed orders | 1,808 |
-
-| Frequent itemsets | 622 (554 size 1, 68 size 2, none larger) |
-
-| Association rules | 136 |
-
-No order id, restaurant id, food id, or quantity was invalid in this extract, and no completed order lacked an item. The strongest pair by lift is item 426 (Miso Soup) → item 430 (Tempura): support count 14, support 0.003178, confidence 0.608696, lift 89.38, leverage 0.003143, conviction 2.538. The reverse rule has the same support and lift, confidence 0.466667, and conviction 1.865. Other high-lift pairs are Pho Bo (570) with Spring Rolls (572), and Bun Cha (281) with Spring Rolls (279). Lift is high because each item is rare in the 4,405-order denominator. Every global rule in this run has confidence below 1.
-
-Restaurant-specific mining writes a separate directory and does not replace the global files:
-
-```powershell
-
-.\.venv\Scripts\python.exe -m mining.association.run_mining --restaurant-specific --min-support 0.05 --min-confidence 0.4 --min-restaurant-transactions 30 --output-dir data/processed/association_restaurant_run
-
-```
-
-All 50 restaurants had 71–105 valid transactions, so none were skipped. That run found 2,802 itemsets (587 size 1, 1,849 size 2, 359 size 3, 7 size 4) and 1,365 rules. At restaurant 31 (94 transactions), Chocolate Shake (354) and Cheeseburger (359) → Brownie (352): support count 5, support 0.053191, confidence 0.833333, lift 4.352, leverage 0.040969, conviction 4.851. Some rules have confidence 1; their conviction is null.
-
-### Artifacts
-- `data/processed/association_frequent_itemsets.parquet` — item ids and names, size, support count, support, restaurant scope
-
-- `data/processed/association_rules.parquet` — antecedent and consequent ids and names, support count, support, confidence, lift, leverage, conviction, restaurant scope
-
-- `data/processed/association_mining_metrics.json`
-
-- `data/processed/association_restaurant_run/` — the same three files for the restaurant-specific command
-
-An empty threshold still writes the column schema with zero rows. The JSON explains why.
-
-Menu items belong to one restaurant, so a global rule is not a cross-restaurant combination. Global support uses all 4,405 transactions, which dilutes pairs that exist at only one restaurant. Identical dish names stay distinct when their ids differ.
-
-## Customer churn analysis
-`mining/churn/` flags customers whose last completed order is old relative to a reference date. The label is an inactivity rule. It is not a prediction that the customer is permanently lost, and there is no verified churn label to score it against.
-
-Reference date for the documented run: `2026-10-11`. Only completed orders count. Cancelled and pending orders do not reset the clock. Customers with no completed order on or before the reference date are excluded from `customer_churn_risk.parquet`.
-
-Inactivity is calendar days from the last completed order to the reference date. The category comes from that rule, not from the score.
-
-| Category | Rule |
-
+| Component | Status |
 |---|---|
-
-| `active` | Fewer than 45 days |
-
-| `at_risk` | At least 45 days and fewer than 90 |
-
-| `churned_under_definition` | At least 90 days. Inactive under this rule, not permanently lost |
-
-| `insufficient_history` | First completed order is less than 90 days before the reference date. Not flagged. `risk_score` is null |
-
-Behavior is recomputed from completed orders, reviews, and VADER `overall_score` in `review_sentiment.parquet`. It does not use the null sentiment placeholders on `restaurant_features.parquet`. Spend is the sum of completed order totals and is not joined to line items. Names, emails, and phone numbers are not used.
-
-`risk_score` is a capped heuristic, not a probability. This run does not report accuracy, precision, recall, or ROC-AUC. Points are added only after a customer has enough history. The total is capped at 100.
-
-| Points | When they are added |
-
-|---|---|
-
-| Up to 60 | `min(60, 60 * inactivity_days / 90)` |
-
-| 15 | Completed-order count is 4 or fewer (`--low-frequency-max`, default 4) |
-
-| 15 | At least one closed gap exists, and inactivity is more than 1.5 times the mean gap between consecutive completed orders. One order has no closed gap |
-
-| 10 | Observed for at least 90 days, the previous 45-day window has at least one completed order, and the latest 45-day window has strictly fewer than half as many (`recent * 2 < prior`). Half does not count |
-
-| 10 | Mean rating is present and at or below 2.5 |
-
-| 10 | Mean VADER score is present and at or below -0.05 |
-
-A missing rating or sentiment score adds nothing. It is not treated as neutral. The category is not chosen by score thresholds.
-
-```powershell
-
-.\.venv\Scripts\python.exe -m mining.churn.run_analysis --reference-date 2026-10-11 --inactivity-days 90 --at-risk-days 45
-
-```
-
-Other flags: `--customers`, `--orders`, `--reviews`, `--sentiment`, `--output-dir`, `--artifacts-dir`, `--low-frequency-max`.
-
-### Observed on the 2026-10-11 sample run
-`customer_churn_metrics.json`: 500 eligible customers, 0 without a completed order, 0 `insufficient_history`, 4,405 completed orders used, 595 cancelled or pending orders ignored. Shares are of those 500 rows.
-
-| Category | Customers | Share | Median inactivity | Median orders | Median spend |
-
-|---|---:|---:|---:|---:|---:|
-
-| active | 292 | 58.4% | 19 days | 9 | 10,761.275 |
-
-| at_risk | 139 | 27.8% | 62 days | 9 | 9,828.33 |
-
-| churned_under_definition | 69 | 13.8% | 126 days | 6 | 6,285.94 |
-
-### Artifacts
-- `data/processed/customer_churn_risk.parquet` — behavior fields, inactivity days, `risk_score`, `risk_category`, `reason_codes`
-
-- `data/processed/customer_churn_summary.parquet`
-
-- `data/processed/customer_churn_metrics.json`
-
-- `mining/churn/artifacts/customer_churn_categories.png` — category counts only
-
-The module does not modify sample CSVs, existing Parquet inputs, or PostgreSQL. A long gap can be a pause. The score is not calibrated. Short histories are not flagged.
-
-## Personalized recommendations
-`mining/recommendation/` ranks food items and restaurants. The stored number is a ranking score, not a purchase probability. Association rules are read from `data/processed/association_rules.parquet` and are not mined again per customer. If that file is missing, the command continues without the association signal and the metrics JSON says to generate it with `python -m mining.association.run_mining --min-support 0.003 --min-confidence 0.3`.
-
-Only completed orders on or before the reference date count. A food item is recommended only when it is available, the restaurant is active, and the catalog restaurant matches. An item bought once is left out. An item bought on two or more completed orders can be recommended as a reorder. Names, emails, and phone numbers are not output fields. Restaurants the customer already used are recommended only when that customer's mean rating there is at least 4.
-
-Each signal is scaled to 0–1. Cuisine fit is the share of completed orders in that cuisine. Association strength is `0.5 * min(confidence, 1) + 0.5 * min(lift, 5) / 5` for a rule whose antecedent the customer bought and whose consequent is the candidate. Rules with lift below 1, a missing item, more than one item on a side, or items from two restaurants are dropped. Quality is the mean of `rating / 5` and `(sentiment + 1) / 2` when those restaurant values exist; if both are missing, quality is 0.5. Familiarity is `0.5 *` order share at the restaurant `+ 0.5 * 1 / (1 + days / 30)`. Popularity is the count divided by the maximum.
-
-For completed-order count `n` and `limited_history_orders = 2`, `alpha = 0` when `n = 0`, otherwise `alpha = min(1, n / 3)`. `score = alpha * history_score + (1 - alpha) * cold_score`.
-
-Food history: `0.25 * cuisine_fit + 0.25 * association + 0.20 * quality + 0.20 * familiarity + 0.10 * popularity`. Cold-start score for food and restaurants: `0.75 * quality + 0.25 * popularity`. Restaurant history: `0.40 * cuisine_fit + 0.40 * quality + 0.10 * familiarity + 0.10 * popularity`.
-
-Ties prefer the higher association strength for food, or higher quality for restaurants, then the lower numeric id. The reason is the strongest positive contribution, including `associated with a previously purchased item`, `frequently purchased cuisine`, `highly rated in preferred cuisine`, `previously reordered item`, `previously highly rated restaurant`, `highly rated restaurant`, and `general pick for limited history`. A reorder contributes to the reason text only; it is not added to the score. A customer with no completed orders gets `general pick for limited history`. One or two completed orders use the alpha blend. This extract has no zero-order customers, so that reason does not appear in the written files.
-
-```powershell
-
-.\.venv\Scripts\python.exe -m mining.recommendation.run_recommendations --reference-date 2026-10-11
-
-```
-
-`--food-k` defaults to 5 and `--restaurant-k` defaults to 3.
-
-### Observed on the 2026-10-11 sample run
-The run wrote 2,500 food rows and 1,500 restaurant rows for 500 customers, using 136 association rules. No duplicate customer-item or customer-restaurant pair was written, and no food row pointed at a different restaurant than the catalog.
-
-Holdout leaves out each customer's last completed order and builds preferences only from earlier completed orders. Reviews after that cutoff are excluded. Stored association rules are off (`association_in_holdout: false`) because they were mined on the full history. Eligible food customers: last order contains a catalog item not bought earlier (492). Eligible restaurant customers: last order is at a restaurant not used earlier (438).
-
-| Metric | Food @5 | Restaurant @3 |
-
-|---|---:|---:|
-
-| Hit rate | 0.0244 | 0.0639 |
-
-| Precision | 0.0053 | 0.0213 |
-
-| Recall | 0.0163 | 0.0639 |
-
-Unrounded values are in `recommendation_metrics.json` (food hit rate 0.024390243902439025, restaurant hit rate 0.0639269406392694). These checks compare ranks with a later order. They are not a claim about satisfaction or sales. A low hit rate is expected when five items are chosen from 587 catalog items. Popularity does not decide the written reason when another signal is present.
-
-### Artifacts
-- `data/processed/food_recommendations.parquet` — `customer_id`, `food_item_id`, `restaurant_id`, `recommendation_score`, `rank`, `reason`
-
-- `data/processed/restaurant_recommendations.parquet` — `customer_id`, `restaurant_id`, `recommendation_score`, `rank`, `reason`
-
-- `data/processed/recommendation_metrics.json`
-
-- `mining/recommendation/artifacts/recommendation_reasons.png`
-
-## Demand forecasting
-`mining/forecasting/` forecasts completed-order demand for each restaurant and each food item. It reads `orders.parquet`, `order_items.parquet`, and `food_items.parquet`. It does not modify those files, the sample CSVs, or PostgreSQL. `scikit-learn` and `matplotlib` come from the root `requirements.txt`.
-
-Only status `completed`, compared after trimming and lowercasing, counts. Cancelled and pending orders are excluded. Orders after the reference date are excluded.
-
-| Level | Demand |
-
-|---|---|
-
-| Restaurant | Count of completed orders in the period. Order totals are not joined to line items |
-
-| Food item | Sum of `quantity` on those orders. The restaurant id is the order's restaurant. A line whose food item belongs to another restaurant is excluded |
-
-A missing day or week is zero only after that series' first observed period, through the reference date. Earlier dates are not filled. The first order is not a known menu-launch date.
-
-The baseline is seasonal naive: season length 7 for daily data and 4 for weekly data. A series shorter than one season uses the previous period. The other model is ridge regression (`alpha=1.0`, `random_state` from `--seed`) on `lag_1`, `lag_season`, the mean of the last season, and day of week (daily) or ISO week (weekly). Both forecasts are recursive. Each later step appends that step's prediction and does not read a future actual. Predictions are clipped at zero. Ridge is fit only when at least four training rows exist; otherwise that series keeps the seasonal naive forecast. The default minimum training length is 28 daily periods or 8 weekly periods, and the holdout is extra. Shorter series are skipped. If none qualify, the command stops.
-
-Evaluation is a chronological holdout: the last `horizon` periods through the reference date. That score is fit only on earlier periods. A second fit on the full history writes the forward forecast after the reference date. There is no random split.
-
-| Metric | Definition |
-
-|---|---|
-
-| MAE | Mean absolute error. Each holdout point counts equally |
-
-| RMSE | Root mean squared error. Large misses count more than in MAE |
-
-| WAPE | Total absolute error divided by total actual demand. Null when that total is zero |
-
-```powershell
-
-.\.venv\Scripts\python.exe -m mining.forecasting.run_forecast --reference-date 2026-10-11 --horizon 7
-
-```
-
-| Flag | Default | Role |
-
-|---|---|---|
-
-| `--reference-date` | `2026-10-11` | UTC date. Later orders are ignored |
-
-| `--horizon` | 7 | Holdout length and forward forecast length |
-
-| `--aggregation` | `daily` | `daily` or `weekly` |
-
-| `--model` | `ridge` | `ridge` or `seasonal_naive`. The baseline is always scored |
-
-| `--seed` | 42 | Ridge `random_state` |
-
-| `--min-history` | 28 daily, 8 weekly | Minimum training periods before the holdout |
-
-| `--orders`, `--order-items`, `--food-items` | `data/processed` | Input Parquet |
-
-| `--output-dir` | `data/processed` | Forecast, history, and metrics |
-
-| `--artifacts-dir` | `mining/forecasting/artifacts` | Holdout chart |
-
-Module test, from the repository root:
-
-```powershell
-
-.\.venv\Scripts\python.exe -m pytest tests\test_forecasting.py -q
-
-```
-
-`tests/test_forecasting.py` has 7 tests. The combined root-suite command is in [Tests](#tests).
-
-### Observed on the 2026-10-11 daily sample run
-These figures are from `demand_forecast_metrics.json` for that daily, horizon-7 run. They are not a guaranteed error rate, and they are not the weekly aggregation. Weekly aggregation is implemented and covered by tests. Completed orders used: 4,405. Non-completed orders excluded: 595. Item lines used: 13,187. Invalid quantities: 0. Unknown or cross-restaurant lines: 0. Restaurants scored: 50, skipped: 0. Food items scored: 587, skipped: 0. Ridge fallback: 0. In the written forecast file, forward dates run from 2026-10-12 through 2026-10-18, and the smallest predicted demand is 0.
-
-Holdout actuals were 26 completed orders over 350 restaurant-days and 170 quantity units over 4,109 item-days. A WAPE above 1 means total absolute error exceeded total holdout demand.
-
-| Level | Model | MAE | RMSE | WAPE |
-
-|---|---|---:|---:|---:|
-
-| Restaurant | Seasonal naive | 0.317 | 0.630 | 4.269 |
-
-| Restaurant | Ridge | 0.283 | 0.334 | 3.806 |
-
-| Food item | Seasonal naive | 0.155 | 0.614 | 3.747 |
-
-| Food item | Ridge | 0.157 | 0.331 | 3.790 |
-
-On this run, pooled restaurant WAPE was lower for ridge (3.806 versus 4.269). Pooled food-item WAPE was lower for the seasonal naive forecast (3.747 versus 3.790). Ridge had the lower RMSE at both levels. This is not evidence that the forecast is ready for staffing or purchasing.
-
-### Artifacts
-- `data/processed/demand_forecasts.parquet` — `level`, `restaurant_id`, `food_item_id`, `forecast_date`, `horizon_step`, `horizon`, `aggregation`, `model_name`, `predicted_demand`, `forecast_role` (`holdout` or `forward`), `evaluation_mae`, `evaluation_rmse`, `evaluation_wape`
-
-- `data/processed/demand_forecast_history.parquet` — `level`, ids, `period_start`, `actual_demand`, `aggregation`
-
-- `data/processed/demand_forecast_metrics.json`
-
-- `mining/forecasting/artifacts/demand_forecast_holdout.png` — one restaurant's history, holdout actuals, seasonal naive forecast, and ridge forecast
-
-### Limitations
-- The numbers are holdout error on this extract. They are not revenue, satisfaction, or a staffing plan.
-
-- Daily series are sparse, so a small MAE can still accompany a WAPE above 1.
-
-- Zero-fill starts at the first completed order, not at a known menu-launch date.
-
-- A weekly bucket that contains the reference date can be a partial week when that date is not a Sunday. The documented sample run is daily, and 2026-10-11 is a Sunday.
-
-- Ridge uses four lag and calendar features with a fixed penalty. It is not a causal demand model.
-
-- Series that never reach the minimum history are omitted rather than imputed from other series. None were omitted in the daily sample run.
-
-## Snowflake analytical load
-`warehouse/snowflake/` publishes approved Parquet files into a Snowflake database named `FOODPULSE` and a schema named `ANALYTICS`. It does not read or write PostgreSQL, and it does not change the Parquet files. The connector dependency stays in the root `requirements.txt` (`snowflake-connector-python[pandas]`). It is not a backend API dependency.
-
-The default command validates local files and prints planned table names and row counts. It does not connect and does not need Snowflake credentials:
-
-```powershell
-
-.\.venv\Scripts\python.exe -m warehouse.snowflake.run_load --dry-run
-
-```
-
-`--dry-run` is also the default when neither flag is passed. Add `--tables REVIEW_SENTIMENT CUSTOMER_CHURN_RISK` to limit the plan to approved table names. A live load is a separate opt-in:
-
-```powershell
-
-.\.venv\Scripts\python.exe -m warehouse.snowflake.run_load --execute
-
-```
-
-To check the login without creating objects or loading data:
-
-```powershell
-
-.\.venv\Scripts\python.exe -m warehouse.snowflake.run_load --test-connection
-
-```
-
-That command reads the same `.env` settings, connects without selecting a database or schema, runs `SELECT CURRENT_VERSION(), CURRENT_WAREHOUSE(), CURRENT_DATABASE(), CURRENT_SCHEMA()`, prints those four values, and closes the connection. `connect` does not change autocommit; the load path still disables and verifies it before any setup or write. A previous run against the live Snowflake account completed the analytical load. This documentation edit did not open a new connection or repeat that load.
-
-### Environment
-Put these in the gitignored `.env`. Do not commit them.
-
-| Variable | Purpose |
-
-|----------|---------|
-
-| `SNOWFLAKE_ACCOUNT` | Account locator. It is not written to logs. |
-
-| `SNOWFLAKE_USER` | Login name |
-
-| `SNOWFLAKE_PASSWORD` | Password. A missing value raises `SNOWFLAKE_PASSWORD is not set` and the value is never echoed. |
-
-| `SNOWFLAKE_WAREHOUSE` | Defaults to `FOODPULSE_WH` |
-
-| `SNOWFLAKE_DATABASE` | Defaults to `FOODPULSE` |
-
-| `SNOWFLAKE_SCHEMA` | Defaults to `ANALYTICS` |
-
-| `SNOWFLAKE_ROLE` | Optional |
-
-Warehouse, database, schema, and role must be simple identifiers. The loader does not print the account URL, the user, the password, or row values. `SnowflakeConfig` does not include those secrets in its text form. Connector logging is left at warning level. Exceptions are redacted before they are logged.
-
-### Account setup
-Do not assume the warehouse, database, schema, or role already exist.
-
-1. In the Snowflake UI, create a virtual warehouse named `FOODPULSE_WH` (an X-Small warehouse with auto-suspend is enough for this trial). Grant `USAGE` on that warehouse to the role you will use. The loader does not run `CREATE WAREHOUSE`, because that spends credits and is an account-level object.
-
-2. Set the environment variables above.
-
-3. Run the dry-run and confirm the 16 planned tables.
-
-4. Only then run `--execute`. The login does not require `FOODPULSE` or `ANALYTICS` to exist. The loader checks that `FOODPULSE_WH` is active, runs `CREATE DATABASE IF NOT EXISTS` and `CREATE SCHEMA IF NOT EXISTS`, selects that database and schema, and creates only the selected tables with `CREATE TABLE IF NOT EXISTS`. `--tables` does not create the other analytical tables. It does not drop the database, and it does not delete published rows before the replacement snapshot has been counted in a temporary staging table. If autocommit cannot be turned off, the command stops before any of that setup.
-
-5. After a successful load, suspend the warehouse in the UI if auto-suspend is not already set.
-
-The configured role needs `USAGE` on the warehouse, `CREATE DATABASE` on the account when the database is missing, `USAGE` and `CREATE SCHEMA` on the database, `USAGE` and `CREATE TABLE` on the schema, and `SELECT`, `INSERT`, and `DELETE` on each published table. `INSERT OVERWRITE` needs `DELETE` as well as `INSERT`. The role that creates a table receives `OWNERSHIP`, which covers those table privileges. A missing grant raises a redacted privilege error and does not continue the load.
-
-Reviewed statements are in `warehouse/snowflake/sql/analytics_tables.sql`. They use `USE` and `IF NOT EXISTS` only. There is no `DROP`, `TRUNCATE`, or `CREATE OR REPLACE` of a published table in that file. The loader does not run `CREATE WAREHOUSE`.
-
-### What is loaded
-The default plan reads these files from `data/processed/`:
-
-`review_sentiment.parquet`, `sentiment_by_restaurant.parquet`, `sentiment_by_city.parquet`, `sentiment_by_cuisine.parquet`, `sentiment_by_month.parquet`, `customer_segments.parquet`, `customer_segment_summary.parquet`, `association_frequent_itemsets.parquet`, `association_rules.parquet`, `customer_churn_risk.parquet`, `customer_churn_summary.parquet`, `food_recommendations.parquet`, `restaurant_recommendations.parquet`, `demand_forecasts.parquet`, `customer_features.parquet`, `restaurant_features.parquet`.
-
-Identifier columns (`review_id`, `customer_id`, `restaurant_id`, `food_item_id`) are loaded as `VARCHAR` so integer feature ids and string recommendation ids land in one type. Each table gains a `loaded_at` timestamp that is not in the Parquet file. Nullable Pandas and NumPy values become SQL NULL.
-
-These files stay out of the default plan: `users.parquet` (password hashes), `customers.parquet` (names, emails, phone numbers), raw `reviews.parquet` (review text), and `demand_forecast_history.parquet`. Restaurant-specific association files under `association_restaurant_run/` are not merged into the global association tables, because they use the same columns with a different scope and the files are left unchanged.
-
-### Publish behavior
-Every selected file is validated before a connection is opened. The load sends those validated rows with bound parameters. If a file changes after validation, the command stops before the next write and does not rewrite the Parquet file. Each table is inserted into a session temporary staging table. `INSERT OVERWRITE` is valid for these permanent tables and stays in the same transaction as the staging inserts. It is committed only after the published count matches. A failed staging insert rolls back that table. If the rollback itself fails, the original sanitized error is kept and the rollback error is logged without secrets. A later successful load overwrites the snapshot rather than appending a second copy.
-
-Snowflake commits DDL on its own. `CREATE TABLE IF NOT EXISTS` can therefore leave an empty published table if the first load fails after setup and before a successful overwrite. A later failed load leaves that table's previous successful snapshot in place when the overwrite has not committed. Tables that already committed in the same run stay on the new snapshot, and tables not yet reached stay on the old one. The full 16-table load is not atomic. Disabling autocommit is checked before any setup statement; if that check fails, nothing is created and nothing is written.
-
-### Checks after a manual load
-Confirm the session without printing secrets:
-
-```sql
-
-SELECT CURRENT_WAREHOUSE(), CURRENT_DATABASE(), CURRENT_SCHEMA();
-
-```
-
-Then compare counts with the dry-run report:
-
-```sql
-
-SELECT COUNT(*) FROM FOODPULSE.ANALYTICS.REVIEW_SENTIMENT;
-
-SELECT COUNT(*) FROM FOODPULSE.ANALYTICS.FOOD_RECOMMENDATIONS;
-
-SELECT COUNT(*) FROM FOODPULSE.ANALYTICS.DEMAND_FORECASTS;
-
-```
-
-Repeat `COUNT(*)` for the other planned tables. A second `--execute` should leave those counts unchanged.
-
-### Limitations
-- A previous live account test completed the analytical load. The automated tests below do not connect to Snowflake, and this documentation edit did not repeat the load.
-
-- The virtual warehouse must be created manually. A running warehouse consumes trial credits while it is resumed, including for a failed query. Suspend it when you are done.
-
-- Published tables are not primary-key enforced. Idempotency comes from snapshot replacement, not from a merge key.
-
-- The first failed publish can leave an empty table because DDL commits independently of the data transaction. It does not leave a partial row set from a failed batch. A failure partway through the 16 tables leaves a mix of new snapshots, the previous snapshot, and empty tables. It is not one atomic publish.
-
-- `warehouse/dimensions/`, `warehouse/facts/`, and `warehouse/sql/` are still placeholders. This load is a set of analytical snapshots, not a dimensional star schema.
-
-- Association output files are not rewritten, and restaurant-scoped itemsets are not combined with the global ones.
-
-## Run the implemented modules
-From the repository root. Transform reads `data/sample` and writes processed Parquet. The mining commands read that Parquet. None of these commands modify the sample CSVs or PostgreSQL. Do not use `scripts/run-etl.ps1` for this sequence; that script overwrites `data/sample`.
-
-```powershell
-
-.\.venv\Scripts\python.exe -m etl.pipelines.run_transform --reference-date 2026-10-11
-
-.\.venv\Scripts\python.exe -m mining.sentiment.run_analysis
-
-.\.venv\Scripts\python.exe -m mining.clustering.run_segmentation --seed 42
-
-.\.venv\Scripts\python.exe -m mining.association.run_mining --min-support 0.003 --min-confidence 0.3
-
-.\.venv\Scripts\python.exe -m mining.churn.run_analysis --reference-date 2026-10-11 --inactivity-days 90 --at-risk-days 45
-
-.\.venv\Scripts\python.exe -m mining.recommendation.run_recommendations --reference-date 2026-10-11
-
-.\.venv\Scripts\python.exe -m mining.forecasting.run_forecast --reference-date 2026-10-11 --horizon 7
-
-```
-
-## Tests
-`scripts/test.ps1` and `make test` run pytest from `backend/` and do not collect these files. From the repository root:
-
-```powershell
-
-.\.venv\Scripts\python.exe -m pytest tests\test_transform.py tests\test_sentiment.py tests\test_clustering.py tests\test_association.py tests\test_churn.py tests\test_recommendation.py tests\test_forecasting.py -q
-
-```
-
-On 11 October 2026 that command reported _**_****67 passed******: 14 transform, 12 sentiment, 8 clustering, 8 association, 9 churn, 9 recommendation, and 7 forecasting tests. That is the mining and transform suite from that run, not a historical partial count and not the result of `scripts/test.ps1`. It does not include the Snowflake loader tests. Those stay local and do not need credentials:
-
-```powershell
-
-.\.venv\Scripts\python.exe -m pytest tests\test_snowflake_load.py -q
-
-```
-
-On 11 October 2026 that command reported _**_****21 passed******. These are automated tests using temporary Parquet files and mocked connections. They are not live Snowflake tests.
-
-## Analytics dashboard
-The React app reads existing outputs. It does not retrain sentiment, clustering, churn, recommendations, or forecasts, and it does not open Snowflake or write Parquet.
-
-Processed snapshot, from `data/processed`:
-
-| Section | Endpoint | Source |
-
-|---|---|---|
-
-| Overview counts, completed-order average value, sentiment mix | `GET /analytics/overview` | `restaurants.parquet`, `customers.parquet`, `orders.parquet`, `reviews.parquet`, `review_sentiment.parquet` |
-
-| Restaurant spend, completed orders, average order value, stored average rating | `GET /analytics/restaurants` | `orders.parquet`, `restaurants.parquet`, `restaurant_features.parquet` |
-
-| Sentiment distribution and a page of review results | `GET /analytics/sentiment` | `review_sentiment.parquet`, `reviews.parquet`, `sentiment_by_restaurant.parquet` |
-
-| Segment sizes and stored medians | `GET /analytics/segments` | `customer_segment_summary.parquet` |
-
-| Churn categories and highest stored scores | `GET /analytics/churn` | `customer_churn_summary.parquet`, `customer_churn_risk.parquet` |
-
-| Stored recommendations for one customer | `GET /analytics/recommendations/customers`, `GET /analytics/recommendations/{customer_id}` | `food_recommendations.parquet`, `restaurant_recommendations.parquet`, `food_items.parquet`, `restaurants.parquet` |
-
-| Association rules | `GET /analytics/association` | `association_rules.parquet` |
-
-| One restaurant's history and forward forecast | `GET /analytics/forecast/restaurants`, `GET /analytics/forecast` | `demand_forecast_history.parquet`, `demand_forecasts.parquet` |
-
-`GET /stats/overview` still queries PostgreSQL. It now includes `average_order_value` for orders whose lowercased status is `completed`. On 12 October 2026 the operational tables were reachable and empty, so the dashboard keeps that count separate from the processed snapshot.
-
-Completed-order spend uses the feature-engineering status rule: lowercased `status` equals `completed`, without trimming. `sentiment_label` and `sentiment_score` in `restaurant_features.parquet` stay null and are not plotted. Churn categories and recommendation scores are shown with the same limits as the mining modules: they are classifications and ranking scores, not confirmed behavior or purchase probabilities. The forecast chart plots stored actual demand and the stored forward prediction. It does not fit a model on each page load.
-
-From the repository root, with the processed files already present:
-
-```powershell
-
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000 --app-dir backend
-
-cd frontend
-
-npm install
-
-npm run dev
-
-```
-
-The Vite dev server proxies `/api` to `http://localhost:8000`. Open `http://localhost:5173`.
-
-Dashboard tests use temporary Parquet and an in-memory SQLite database. They do not read the live warehouse:
-
-```powershell
-
-.\.venv\Scripts\python.exe -m pytest backend\tests\test_analytics.py -q
-
-```
-
-On 12 October 2026 that command reported ****9 passed****. `npm run build` in `frontend/` completed. The dev server was then opened at `http://127.0.0.1:5173`. Overview showed 50 restaurants, 500 customers, 5,000 orders, 3,000 reviews, and a completed-order average value of 1,147.49 from the processed files. The operational PostgreSQL panel showed 0 rows. Restaurant, sentiment, segment, churn, recommendation, association, and forecast pages each rendered stored results, including the restaurant 1 ridge history and forward forecast.
-
-## Remaining planned work
-
-### Airflow orchestration — implemented, runtime verification pending
-
-The `foodpulse_pipeline` DAG is defined with `schedule=None` for manual development runs. It calls existing module commands rather than reimplementing the ETL or mining logic.
-
-Task flow reported by the implementation:
-
-1. `check_inputs` checks the nine CSV files in `data/sample` and reads `FOODPULSE_REFERENCE_DATE` (default `2026-10-11`).
-2. `etl_features` runs `python -m etl.pipelines.run_transform` with `USE_SPARK` removed for that process so the established Pandas feature-engineering path is used.
-3. `sentiment`, `association`, and `forecasting` run after ETL. Sentiment is invoked without `--persist`.
-4. `clustering` and `churn` wait for sentiment; `recommendations` waits for association and sentiment.
-5. `spark_features` runs only when `FOODPULSE_SPARK=1`; otherwise it skips.
-6. `snowflake_load` waits for clustering, churn, recommendations, and forecasting. It skips unless `FOODPULSE_SNOWFLAKE_LOAD=1`. The flag enables a dry run; a live load additionally requires `FOODPULSE_SNOWFLAKE_EXECUTE=1`.
-7. `validate_outputs` uses the `all_done` trigger rule and checks expected output files. Spark outputs are required only when Spark is enabled.
-
-Reruns replace output Parquet files; tasks do not append records or delete output directories. `etl/load/seed.py` is not included in the DAG. Do not trigger a full DAG run until input/output paths and side effects have been reviewed, because existing steps may overwrite processed Parquet outputs.
-
-Files added for this module:
-
-- `airflow/dags/foodpulse_flow.py`
-- `airflow/dags/foodpulse_pipeline.py`
-- `airflow/Dockerfile`
-- `docker-compose.airflow.yml`
-- `tests/test_airflow_dag.py`
-
-Local test command:
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest tests\test_airflow_dag.py -q
-```
-
-Reported result: **8 passed, 1 skipped**. The skipped test checks importing Apache Airflow; Airflow is not installed in `.venv`. The host Python version is 3.13.11, and the implementation did not install Airflow 2.10 into the core environment because of compatibility concerns. Docker was installed, but its daemon was not running; the image, scheduler, and UI have not been verified. Therefore the DAG logic has partial local test coverage, but Airflow runtime verification is still pending.
-
-When ready to verify the runtime, start Docker Desktop and inspect `docker-compose.airflow.yml`, then validate the Compose configuration and start the isolated services. Confirm DAG discovery in the UI at `http://localhost:8080` before triggering a controlled run. Keep Snowflake execution disabled during verification.
-
-### Transformer sentiment backend — smoke-tested, not accuracy-tested
-
-`torch` 2.14.1 and `transformers` 5.19.0 installed successfully. Mocked sentiment tests reported **20 passed**. A later CPU smoke test loaded `cardiffnlp/twitter-roberta-base-sentiment-latest` and scored five hand-written texts: positive 0.987, negative 0.951, neutral 0.932, and `invalid` with a null score for two empty inputs. Accuracy on the 3,000 project reviews was not measured. VADER remains the default when `SENTIMENT_MODEL` is unset.
-
-### Power BI reports — pending
-
-Power BI reports have not been implemented or verified. The React analytics dashboard is a separate application feature and does not count as Power BI report completion.
+| Pandas ETL and feature engineering | Implemented and tested |
+| VADER sentiment and aspect labels | Implemented and tested |
+| Optional transformer sentiment | Smoke-tested; full accuracy evaluation pending |
+| Customer clustering | Implemented and tested |
+| Apriori association rules | Implemented and tested |
+| Rule-based inactivity / churn-risk analysis | Implemented and tested |
+| Personalized recommendations | Implemented and tested |
+| Demand forecasting | Implemented and tested |
+| PySpark feature aggregation | Implemented and locally verified; optional in Airflow |
+| Snowflake analytical loader | Implemented; prior live load completed |
+| FastAPI operational endpoints | Implemented |
+| React / Plotly analytics dashboard | Implemented and locally verified |
+| Airflow DAG and Docker runtime | Manually executed successfully; Snowflake task verified in dry-run mode |
+| Dimensional Snowflake star schema | Pending |
+| Power BI reports | Pending |
+
+## Future Enhancements
+
+1. Implement warehouse dimensions, fact tables, and the corresponding dimensional SQL model.
+2. Improve and evaluate transformer sentiment using a representative labeled dataset.
+3. Evaluate recommendation quality on more suitable holdout data and investigate the low observed hit rates.
+4. Improve forecast evaluation for sparse restaurant and food-item demand, and consider calibrated uncertainty estimates.
+5. Add Power BI reports if required by the project scope.
+6. Improve dashboard bundle performance and expand automated integration testing.
+7. Perform a controlled live Snowflake load when required, with valid credentials, explicit execution settings, and post-load verification.
+
+## Project Goal
+
+FoodPulse demonstrates an end-to-end restaurant analytics workflow that connects data preparation, data mining, machine learning, workflow orchestration, analytical warehouse publishing, API development, and interactive visualization. It is designed as an extensible academic data mining project with a practical, resume-oriented engineering structure.
