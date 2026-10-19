@@ -62,8 +62,10 @@ def processed_dir() -> Path:
     return PROJECT_ROOT / "data" / "processed"
 
 
-def overview() -> dict[str, object]:
+def overview(start: str | None = None, end: str | None = None) -> dict[str, object]:
     """Count entities and completed-order value from processed files."""
+    from app.services.dashboard_metrics import completed_metrics, forecast_window
+
     unavailable: list[str] = []
     restaurants = _count("restaurants.parquet", "id", unavailable)
     customers = _count("customers.parquet", "id", unavailable)
@@ -71,18 +73,33 @@ def overview() -> dict[str, object]:
     reviews = _count("reviews.parquet", "id", unavailable)
     completed_orders = None
     average_order_value = None
+    completed_revenue = None
+    monthly: list[dict[str, object]] = []
+    order_definition = None
     try:
-        frame = _read("orders.parquet", ["status", "total_amount"])
-        completed = _completed(frame)
-        completed_orders = int(len(completed))
-        average_order_value = _mean(completed["total_amount"])
+        try:
+            frame = _read("orders.parquet", ["status", "total_amount", "order_date"])
+        except AnalyticsDataError as exc:
+            if "order_date" not in exc.message:
+                raise
+            unavailable.append(exc.message)
+            frame = _read("orders.parquet", ["status", "total_amount"])
+            frame = frame.assign(order_date=pd.NaT)
+        metrics = completed_metrics(frame, start, end)
+        completed_orders = metrics["completed_orders"]
+        average_order_value = metrics["average_order_value"]
+        completed_revenue = metrics["completed_revenue"]
+        monthly = metrics["monthly"]
+        order_definition = metrics["definition"]
     except AnalyticsDataError as exc:
         unavailable.append(exc.message)
-    sentiment = []
-    try:
-        sentiment = sentiment_distribution()
-    except AnalyticsDataError as exc:
-        unavailable.append(exc.message)
+    except ValueError as exc:
+        raise AnalyticsDataError(str(exc), status_code=422) from exc
+    average_rating = _average_rating(unavailable)
+    sentiment = _optional(sentiment_distribution, unavailable)
+    segment_items = _optional(lambda: segments()["items"], unavailable)
+    churn_items = _optional(lambda: churn()["summary"], unavailable)
+    forecast = _optional_forecast(forecast_window, unavailable)
     return {
         "source": "processed_parquet",
         "restaurants": restaurants,
@@ -90,8 +107,15 @@ def overview() -> dict[str, object]:
         "orders": orders,
         "reviews": reviews,
         "completed_orders": completed_orders,
+        "completed_revenue": completed_revenue,
         "average_order_value": average_order_value,
+        "average_rating": average_rating,
+        "order_definition": order_definition,
+        "monthly": monthly,
         "sentiment": sentiment,
+        "segments": segment_items,
+        "churn": churn_items,
+        "forecast": forecast,
         "unavailable": unavailable,
     }
 
@@ -181,10 +205,38 @@ def sentiment_report(label: str | None = None, limit: int = 25, offset: int = 0)
                 "review_text": text_value,
             }
         )
+    from app.services.dashboard_metrics import aspect_counts
+
+    aspects: list[dict[str, object]] = []
+    aspect_note = None
+    try:
+        aspect_frame = _read(
+            "review_sentiment.parquet",
+            ["food_sent", "service_sent", "ambience_sent", "price_sent"],
+        )
+        aspects = aspect_counts(aspect_frame)
+    except AnalyticsDataError as exc:
+        aspect_note = exc.message
+    by_month: list[dict[str, object]] = []
+    month_note = None
+    try:
+        month_frame = _read(
+            "sentiment_by_month.parquet",
+            ["month", "review_count", "positive_count", "negative_count", "neutral_count", "invalid_count"],
+        )
+        by_month = [_row(record) for record in month_frame.sort_values("month").to_dict(orient="records")]
+    except AnalyticsDataError as exc:
+        month_note = exc.message
     return {
         "source": "processed_parquet",
+        "backend": "stored_output",
+        "backend_note": "These rows are the sentiment file already on disk. This request does not run VADER or the transformer.",
         "distribution": distribution,
         "by_restaurant": by_restaurant,
+        "by_month": by_month,
+        "aspects": aspects,
+        "aspects_unavailable": aspect_note,
+        "monthly_unavailable": month_note,
         "labels": sorted({item["label"] for item in distribution}),
         "total_reviews": total,
         "items": items,
@@ -411,6 +463,7 @@ def build_forecast_series(
     return {
         "source": "processed_parquet",
         "notice": FORECAST_NOTICE,
+        "intervals": None,
         "restaurant_id": restaurant_id,
         "model_name": model_name,
         "aggregation": aggregation,
@@ -439,6 +492,127 @@ def _completed(frame: pd.DataFrame) -> pd.DataFrame:
     return frame.loc[status == COMPLETED_ORDER_STATUS].copy()
 
 
+_CACHE: dict[tuple[str, tuple[str, ...]], tuple[float, pd.DataFrame]] = {}
+
+
+def restaurant_detail(restaurant_id: int) -> dict[str, object]:
+    """One restaurant from the same completed-order definition as the ranking."""
+    page = restaurant_performance(limit=100, offset=0)
+    matches = [item for item in page["items"] if int(item["restaurant_id"]) == int(restaurant_id)]
+    if not matches:
+        raise AnalyticsDataError(f"Restaurant {restaurant_id} is not in the processed restaurant file.", status_code=404)
+    sentiment = None
+    try:
+        rows = _read(
+            "sentiment_by_restaurant.parquet",
+            ["restaurant_id", "review_count", "positive_count", "negative_count", "neutral_count", "invalid_count", "mean_score"],
+        )
+        match = rows.loc[pd.to_numeric(rows["restaurant_id"], errors="coerce") == int(restaurant_id)]
+        if not match.empty:
+            sentiment = _row(match.iloc[0].to_dict())
+    except AnalyticsDataError:
+        sentiment = None
+    return {"source": "processed_parquet", "restaurant": matches[0], "sentiment": sentiment}
+
+
+def association_itemsets(limit: int = 15) -> dict[str, object]:
+    """Return the largest stored frequent itemsets by support."""
+    frame = _read(
+        "association_frequent_itemsets.parquet",
+        ["item_names", "itemset_size", "support", "support_count"],
+    )
+    ordered = frame.sort_values("support", ascending=False, na_position="last").head(limit)
+    return {
+        "source": "processed_parquet",
+        "notice": "Support is the share of baskets that contain the itemset. These rows are stored mining output.",
+        "items": [_row(record) for record in ordered.to_dict(orient="records")],
+    }
+
+
+def recommendation_summary(limit: int = 10) -> dict[str, object]:
+    """Count how often each stored recommendation appears. This does not re-rank."""
+    foods = _read("food_recommendations.parquet", ["food_item_id", "recommendation_score"])
+    restaurants = _read("restaurant_recommendations.parquet", ["restaurant_id", "recommendation_score"])
+    food_names = _lookup("food_items.parquet", "id", "name")
+    restaurant_names = _lookup("restaurants.parquet", "id", "name")
+    return {
+        "source": "processed_parquet",
+        "notice": RECOMMENDATION_NOTICE,
+        "foods": _ranked_names(foods, "food_item_id", food_names, limit),
+        "restaurants": _ranked_names(restaurants, "restaurant_id", restaurant_names, limit),
+    }
+
+
+def _ranked_names(frame: pd.DataFrame, key: str, names: dict[str, str | None], limit: int) -> list[dict[str, object]]:
+    if frame.empty:
+        return []
+    scores = pd.to_numeric(frame["recommendation_score"], errors="coerce")
+    grouped = (
+        frame.assign(_score=scores)
+        .groupby(key, dropna=False)
+        .agg(recommendations=("_score", "size"), mean_score=("_score", "mean"))
+        .reset_index()
+        .sort_values(["recommendations", "mean_score"], ascending=False)
+        .head(limit)
+    )
+    rows = []
+    for record in grouped.to_dict(orient="records"):
+        identifier = record.get(key)
+        rows.append(
+            {
+                "id": _json_value(identifier),
+                "name": names.get(str(identifier)),
+                "recommendations": int(record["recommendations"]),
+                "mean_score": _json_value(record["mean_score"]),
+            }
+        )
+    return rows
+
+
+def _cached_parquet(path: Path, columns: list[str]) -> pd.DataFrame:
+    """Reuse a Parquet read until the file's modification time changes."""
+    stamp = path.stat().st_mtime
+    key = (str(path.resolve()), tuple(columns))
+    cached = _CACHE.get(key)
+    if cached is not None and cached[0] == stamp:
+        return cached[1].copy()
+    frame = pd.read_parquet(path, columns=columns)
+    _CACHE[key] = (stamp, frame)
+    return frame.copy()
+
+
+def _optional(func, unavailable: list[str]):
+    try:
+        return func()
+    except AnalyticsDataError as exc:
+        unavailable.append(exc.message)
+        return []
+
+
+def _optional_forecast(func, unavailable: list[str]) -> dict[str, object] | None:
+    try:
+        frame = _read(
+            "demand_forecasts.parquet",
+            ["level", "forecast_role", "model_name", "aggregation", "forecast_date", "restaurant_id", "horizon"],
+        )
+        return func(frame)
+    except AnalyticsDataError as exc:
+        unavailable.append(exc.message)
+        return None
+    except ValueError as exc:
+        unavailable.append(str(exc))
+        return None
+
+
+def _average_rating(unavailable: list[str]) -> float | None:
+    try:
+        frame = _read("reviews.parquet", ["rating"])
+    except AnalyticsDataError as exc:
+        unavailable.append(exc.message)
+        return None
+    return _mean(frame["rating"])
+
+
 def _count(filename: str, column: str, unavailable: list[str]) -> int | None:
     try:
         frame = _read(filename, [column])
@@ -459,7 +633,7 @@ def _read(filename: str, columns: list[str]) -> pd.DataFrame:
             f"{filename} is missing required columns: {', '.join(missing)}",
             status_code=422,
         )
-    return pd.read_parquet(path, columns=columns)
+    return _cached_parquet(path, columns)
 
 
 def _filter(filename: str, columns: list[str], filters: list[tuple[str, str, str]]) -> pd.DataFrame:

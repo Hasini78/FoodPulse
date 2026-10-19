@@ -16,9 +16,12 @@ def _call(func, *args, **kwargs):
 
 
 @router.get("/overview")
-def get_processed_overview() -> dict:
+def get_processed_overview(
+    start: str | None = Query(None),
+    end: str | None = Query(None),
+) -> dict:
     """Entity counts, completed-order value, and sentiment mix from Parquet."""
-    return _call(analytics_service.overview)
+    return _call(analytics_service.overview, start=start, end=end)
 
 
 @router.get("/restaurants")
@@ -38,6 +41,12 @@ def get_restaurant_performance(
         limit=limit,
         offset=offset,
     )
+
+
+@router.get("/restaurants/{restaurant_id}")
+def get_restaurant_detail(restaurant_id: int) -> dict:
+    """Completed-order metrics and stored sentiment for one restaurant."""
+    return _call(analytics_service.restaurant_detail, restaurant_id)
 
 
 @router.get("/sentiment")
@@ -65,6 +74,12 @@ def get_churn(
     return _call(analytics_service.churn, category=category, limit=limit)
 
 
+@router.get("/recommendations/summary")
+def get_recommendation_summary(limit: int = Query(10, ge=1, le=50)) -> dict:
+    """How often each stored food or restaurant recommendation appears."""
+    return _call(analytics_service.recommendation_summary, limit=limit)
+
+
 @router.get("/recommendations/customers")
 def get_recommendation_customers(limit: int = Query(50, ge=1, le=200)) -> dict:
     """Customer ids that already have stored recommendations."""
@@ -75,6 +90,12 @@ def get_recommendation_customers(limit: int = Query(50, ge=1, le=200)) -> dict:
 def get_recommendations(customer_id: str) -> dict:
     """Stored food and restaurant recommendations for one customer."""
     return _call(analytics_service.recommendations_for, customer_id)
+
+
+@router.get("/association/itemsets")
+def get_itemsets(limit: int = Query(15, ge=1, le=50)) -> dict:
+    """Stored frequent itemsets ordered by support."""
+    return _call(analytics_service.association_itemsets, limit=limit)
 
 
 @router.get("/association")
