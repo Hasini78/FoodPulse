@@ -1,9 +1,9 @@
 import { useState } from 'react'
-import { Bar, BarChart, CartesianGrid, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
 
 import { DataTable } from '../components/DataTable'
 import { Panel } from '../components/Panel'
-import { getRestaurants } from '../lib/analytics'
+import { PlotlyChart } from '../components/PlotlyChart'
+import { getRestaurantDetail, getRestaurants } from '../lib/analytics'
 import { formatNumber } from '../lib/format'
 import { useAsync } from '../lib/useAsync'
 
@@ -11,10 +11,12 @@ export function RestaurantsPage() {
   const [sort, setSort] = useState('total_spend')
   const [cuisine, setCuisine] = useState('')
   const state = useAsync(() => getRestaurants({ sort, cuisine: cuisine || undefined }), [sort, cuisine])
-  const items = state.data?.items ?? []
+  const items = (state.data?.items ?? []) as Array<Record<string, unknown>>
+  const [selectedId, setSelectedId] = useState('')
   const chart = [...items]
     .sort((a, b) => Number(b.total_spend ?? 0) - Number(a.total_spend ?? 0))
     .slice(0, 8)
+  const detail = useAsync(() => (selectedId ? getRestaurantDetail(selectedId) : Promise.resolve(null)), [selectedId])
 
   return (
     <div className="space-y-6">
@@ -36,6 +38,15 @@ export function RestaurantsPage() {
           </select>
         </label>
         <label className="text-sm text-slate-600">
+          Restaurant detail
+          <select className="mt-1 block rounded-md border border-slate-300 bg-white px-3 py-2" value={selectedId} onChange={(event) => setSelectedId(event.target.value)}>
+            <option value="">Select</option>
+            {items.map((row) => (
+              <option key={String(row.restaurant_id)} value={String(row.restaurant_id)}>{String(row.name)}</option>
+            ))}
+          </select>
+        </label>
+        <label className="text-sm text-slate-600">
           Cuisine
           <select className="mt-1 block rounded-md border border-slate-300 bg-white px-3 py-2" value={cuisine} onChange={(event) => setCuisine(event.target.value)}>
             <option value="">All</option>
@@ -46,17 +57,13 @@ export function RestaurantsPage() {
         </label>
       </div>
       <Panel title="Spend comparison" description="Top restaurants in the current filter, by completed-order spend." status={state.status} error={state.error} empty={!chart.length}>
-        <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chart} layout="vertical" margin={{ left: 24 }}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" label={{ value: 'Completed-order spend', position: 'insideBottom', offset: -2 }} />
-              <YAxis type="category" dataKey="name" width={120} />
-              <Tooltip />
-              <Bar dataKey="total_spend" name="Spend" fill="#1d4ed8" />
-            </BarChart>
-          </ResponsiveContainer>
-        </div>
+        <PlotlyChart title="Completed-order spend" data={[{ type: 'bar', orientation: 'h', y: chart.map((row) => String(row.name)), x: chart.map((row) => Number(row.total_spend ?? 0)), name: 'Spend' }]} />
+      </Panel>
+      <Panel title="Rating and volume" description="Each point is a restaurant. Horizontal position is completed orders. Vertical position is the stored average rating." status={state.status} error={state.error} empty={!items.length}>
+        <PlotlyChart
+          title="Orders and average rating"
+          data={[{ type: 'scatter', mode: 'markers', x: items.map((row) => Number(row.completed_orders ?? 0)), y: items.map((row) => row.avg_rating), text: items.map((row) => String(row.name ?? '')), name: 'Restaurants' }]}
+        />
       </Panel>
       <Panel title="Restaurants" status={state.status} error={state.error} empty={!items.length}>
         <DataTable
@@ -70,6 +77,11 @@ export function RestaurantsPage() {
             { key: 'rating', header: 'Avg rating', render: (row) => formatNumber(row.avg_rating, 2) },
           ]}
         />
+      </Panel>
+      <Panel title="Restaurant detail" description="Completed-order metrics plus stored sentiment counts for the selected restaurant." status={selectedId ? detail.status : 'ready'} error={detail.error} empty={!selectedId || !detail.data?.restaurant} emptyMessage="Select a restaurant to see its stored metrics.">
+        <p className="text-sm text-slate-700">
+          {String(detail.data?.restaurant?.name ?? 'Unavailable')}: {formatNumber(detail.data?.restaurant?.completed_orders)} completed orders, spend {formatNumber(detail.data?.restaurant?.total_spend, 2)}, average rating {formatNumber(detail.data?.restaurant?.avg_rating, 2)}. Stored positive reviews {formatNumber(detail.data?.sentiment?.positive_count)}, negative {formatNumber(detail.data?.sentiment?.negative_count)}.
+        </p>
       </Panel>
     </div>
   )

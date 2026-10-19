@@ -1,13 +1,10 @@
 import { useState } from 'react'
-import { Cell, Legend, Pie, PieChart, ResponsiveContainer, Tooltip } from 'recharts'
-
 import { DataTable } from '../components/DataTable'
 import { Panel } from '../components/Panel'
+import { PlotlyChart } from '../components/PlotlyChart'
 import { getSentiment } from '../lib/analytics'
 import { formatNumber, formatPercent } from '../lib/format'
 import { useAsync } from '../lib/useAsync'
-
-const COLORS = ['#0f766e', '#b45309', '#1d4ed8', '#64748b', '#be123c']
 
 export function SentimentPage() {
   const [label, setLabel] = useState('')
@@ -19,23 +16,47 @@ export function SentimentPage() {
       <header>
         <h1 className="text-2xl font-semibold tracking-tight">Sentiment</h1>
         <p className="mt-2 max-w-3xl text-sm text-slate-600">
-          Positive, negative, neutral, and invalid labels are whatever the existing sentiment output stored. This page does not score reviews again.
+          {state.data?.backend_note ?? 'This page reads the stored sentiment file. It does not run VADER or the transformer.'} Aspect bars use food_sent, service_sent, ambience_sent, and price_sent when those columns exist.
         </p>
       </header>
       <Panel title="Overall distribution" status={state.status} error={state.error} empty={!distribution.length} emptyMessage="Sentiment output is unavailable.">
-        <div className="h-80">
-          <ResponsiveContainer width="100%" height="100%">
-            <PieChart>
-              <Pie data={distribution} dataKey="count" nameKey="label" outerRadius={100} label>
-                {distribution.map((entry: { label: string }, index: number) => (
-                  <Cell key={entry.label} fill={COLORS[index % COLORS.length]} />
-                ))}
-              </Pie>
-              <Tooltip />
-              <Legend />
-            </PieChart>
-          </ResponsiveContainer>
-        </div>
+        <PlotlyChart title="Overall sentiment" data={[{ type: 'pie', labels: distribution.map((row: { label: string }) => row.label), values: distribution.map((row: { count: number }) => row.count), name: 'Reviews' }]} />
+      </Panel>
+      <Panel title="Sentiment by month" description="Counts from sentiment_by_month.parquet." status={state.status} error={state.error} empty={!(state.data?.by_month ?? []).length} emptyMessage={state.data?.monthly_unavailable ?? 'Monthly sentiment is unavailable.'}>
+        <PlotlyChart
+          title="Monthly sentiment counts"
+          data={['positive_count', 'negative_count', 'neutral_count'].map((key) => ({
+            type: 'bar',
+            name: key.replace('_count', ''),
+            x: (state.data?.by_month ?? []).map((row: { month: string }) => row.month),
+            y: (state.data?.by_month ?? []).map((row: Record<string, number>) => row[key]),
+          }))}
+        />
+      </Panel>
+      <Panel title="Aspect labels" description="Stored aspect labels. Ambience can be entirely 'not mentioned' when the lexicon found no ambience words." status={state.status} error={state.error} empty={!(state.data?.aspects ?? []).length} emptyMessage={state.data?.aspects_unavailable ?? 'Aspect columns are unavailable.'}>
+        <PlotlyChart
+          title="Aspect sentiment"
+          data={['positive', 'negative', 'neutral', 'not mentioned'].map((label) => ({
+            type: 'bar',
+            name: label,
+            x: ['food', 'service', 'ambience', 'price'],
+            y: ['food', 'service', 'ambience', 'price'].map((aspect) => {
+              const match = (state.data?.aspects ?? []).find((row: { aspect: string; label: string; count: number }) => row.aspect === aspect && row.label === label)
+              return match ? match.count : 0
+            }),
+          }))}
+        />
+      </Panel>
+      <Panel title="By restaurant" description="The fifteen restaurants with the most stored reviews. Counts come from sentiment_by_restaurant.parquet." status={state.status} error={state.error} empty={!(state.data?.by_restaurant ?? []).length} emptyMessage="Restaurant sentiment is unavailable.">
+        <PlotlyChart
+          title="Positive and negative reviews"
+          data={['positive_count', 'negative_count'].map((key) => ({
+            type: 'bar',
+            name: key.replace('_count', ''),
+            x: (state.data?.by_restaurant ?? []).map((row: { restaurant_name?: string; restaurant_id?: string }) => row.restaurant_name || String(row.restaurant_id ?? 'Unavailable')),
+            y: (state.data?.by_restaurant ?? []).map((row: Record<string, number>) => row[key]),
+          }))}
+        />
       </Panel>
       <label className="block text-sm text-slate-600">
         Review label

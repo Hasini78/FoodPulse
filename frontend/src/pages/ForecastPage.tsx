@@ -1,7 +1,6 @@
 import { useState } from 'react'
-import { CartesianGrid, Legend, Line, LineChart, ResponsiveContainer, Tooltip, XAxis, YAxis } from 'recharts'
-
 import { Panel } from '../components/Panel'
+import { PlotlyChart } from '../components/PlotlyChart'
 import { getForecast, getForecastRestaurants } from '../lib/analytics'
 import { formatNumber } from '../lib/format'
 import { useAsync } from '../lib/useAsync'
@@ -58,21 +57,16 @@ export function ForecastPage() {
         emptyMessage="No stored history or forward forecast for this restaurant."
       >
         <p className="mb-3 text-sm text-slate-600">
-          Stored holdout MAE {formatNumber(series.data?.evaluation?.mae, 3)}, RMSE {formatNumber(series.data?.evaluation?.rmse, 3)}, WAPE {formatNumber(series.data?.evaluation?.wape, 3)}. WAPE above 1 means absolute error exceeded total holdout demand.
+          Stored holdout MAE {formatNumber(series.data?.evaluation?.mae, 3)}, RMSE {formatNumber(series.data?.evaluation?.rmse, 3)}, WAPE {formatNumber(series.data?.evaluation?.wape, 3)}. WAPE above 1 means absolute error exceeded total holdout demand. Uncertainty intervals are not in the forecast file, so none are drawn.
         </p>
-        <div className="h-96">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={points}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="date" label={{ value: 'Date', position: 'insideBottom', offset: -2 }} minTickGap={24} />
-              <YAxis label={{ value: 'Completed orders', angle: -90, position: 'insideLeft' }} />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="actual" name="Historical demand" stroke="#0f172a" dot={false} connectNulls={false} />
-              <Line type="monotone" dataKey="predicted" name="Predicted demand" stroke="#b45309" strokeDasharray="5 4" dot={false} connectNulls={false} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
+        <PlotlyChart
+          title="Actual and predicted demand"
+          height={380}
+          data={[
+            { type: 'scatter', mode: 'lines', name: 'Historical demand', x: points.map((point) => point.date), y: points.map((point) => point.actual) },
+            { type: 'scatter', mode: 'lines', name: 'Predicted demand', x: points.map((point) => point.date), y: points.map((point) => point.predicted), line: { dash: 'dash' } },
+          ]}
+        />
       </Panel>
     </div>
   )

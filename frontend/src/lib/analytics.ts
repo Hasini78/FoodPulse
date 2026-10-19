@@ -12,13 +12,20 @@ export function errorMessage(error: unknown): string {
   return 'Something went wrong while loading this section.'
 }
 
-export async function getProcessedOverview() {
-  const { data } = await api.get('/analytics/overview')
+export async function getProcessedOverview(start?: string, end?: string) {
+  const { data } = await api.get('/analytics/overview', {
+    params: { start: start || undefined, end: end || undefined },
+  })
   return data
 }
 
 export async function getOperationalOverview() {
   const { data } = await api.get('/stats/overview')
+  return data
+}
+
+export async function getRestaurantDetail(restaurantId: string) {
+  const { data } = await api.get(`/analytics/restaurants/${encodeURIComponent(restaurantId)}`)
   return data
 }
 
@@ -49,6 +56,16 @@ export async function getRecommendationCustomers() {
 
 export async function getRecommendations(customerId: string) {
   const { data } = await api.get(`/analytics/recommendations/${encodeURIComponent(customerId)}`)
+  return data
+}
+
+export async function getItemsets() {
+  const { data } = await api.get('/analytics/association/itemsets', { params: { limit: 15 } })
+  return data
+}
+
+export async function getRecommendationSummary() {
+  const { data } = await api.get('/analytics/recommendations/summary', { params: { limit: 10 } })
   return data
 }
 
