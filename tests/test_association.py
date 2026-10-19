@@ -9,6 +9,7 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
+from mining.association import mine as association_mine
 from mining.association.baskets import build_baskets
 from mining.association.mine import mine_baskets, validate_thresholds
 from mining.association.run_mining import main, run_mining
@@ -150,6 +151,29 @@ def test_same_order_id_at_two_restaurants_stays_separate() -> None:
     ]
     assert built.item_names["10"] == "Nachos"
     assert built.item_names["20"] == "Nachos"
+
+
+def test_apriori_is_called_with_low_memory(monkeypatch: pytest.MonkeyPatch) -> None:
+    orders, items, foods = _known_world()
+    built = build_baskets(orders, items, foods)
+    seen: dict[str, object] = {}
+    real_apriori = association_mine.apriori
+
+    def spy(matrix: pd.DataFrame, **kwargs: object) -> pd.DataFrame:
+        seen.update(kwargs)
+        return real_apriori(matrix, **kwargs)
+
+    monkeypatch.setattr(association_mine, "apriori", spy)
+    mine_baskets(
+        built,
+        min_support=0.5,
+        min_confidence=0.6,
+        min_lift=None,
+        restaurant_specific=False,
+        min_restaurant_transactions=1,
+    )
+    assert seen["low_memory"] is True
+    assert seen["use_colnames"] is True
 
 
 def test_known_support_confidence_lift_leverage_and_undefined_conviction() -> None:

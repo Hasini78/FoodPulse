@@ -218,6 +218,7 @@ def _mine_scope(
         matrix,
         min_support=minimum_count / transaction_count,
         use_colnames=True,
+        low_memory=True,
     )
     if frequent.empty:
         return _empty_itemsets(), _empty_rules()
