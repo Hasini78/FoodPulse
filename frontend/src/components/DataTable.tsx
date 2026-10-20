@@ -1,32 +1,37 @@
+import type { ReactNode } from 'react'
+
 type Column = {
   key: string
   header: string
-  render: (row: Record<string, unknown>) => string
+  render: (row: Record<string, unknown>) => ReactNode
+  align?: 'left' | 'right'
 }
 
 type DataTableProps = {
   columns: Column[]
   rows: Array<Record<string, unknown>>
+  caption?: string
 }
 
-export function DataTable({ columns, rows }: DataTableProps) {
+export function DataTable({ columns, rows, caption }: DataTableProps) {
   return (
-    <div className="overflow-x-auto">
+    <div className="-mx-1 max-h-[28rem] overflow-auto rounded-xl border border-line">
       <table className="min-w-full text-left text-sm">
-        <thead className="border-b border-slate-200 text-slate-500">
+        {caption ? <caption className="sr-only">{caption}</caption> : null}
+        <thead className="sticky top-0 z-10 bg-canvas text-xs font-semibold text-ink-3">
           <tr>
             {columns.map((column) => (
-              <th key={column.key} className="px-3 py-2 font-medium whitespace-nowrap">
+              <th key={column.key} scope="col" className={['px-4 py-3 whitespace-nowrap', column.align === 'right' ? 'text-right' : ''].join(' ')}>
                 {column.header}
               </th>
             ))}
           </tr>
         </thead>
-        <tbody>
+        <tbody className="divide-y divide-line">
           {rows.map((row, index) => (
-            <tr key={index} className="border-b border-slate-100">
+            <tr key={index} className="transition-colors hover:bg-brand-soft/40">
               {columns.map((column) => (
-                <td key={column.key} className="px-3 py-2 align-top text-slate-800">
+                <td key={column.key} className={['px-4 py-3 align-top text-ink-2', column.align === 'right' ? 'text-right tabular-nums' : ''].join(' ')}>
                   {column.render(row)}
                 </td>
               ))}

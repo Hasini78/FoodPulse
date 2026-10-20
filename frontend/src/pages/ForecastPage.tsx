@@ -1,4 +1,7 @@
 import { useState } from 'react'
+
+import { SelectField } from '../components/Field'
+import { PageHeader } from '../components/PageHeader'
 import { Panel } from '../components/Panel'
 import { PlotlyChart } from '../components/PlotlyChart'
 import { getForecast, getForecastRestaurants } from '../lib/analytics'
@@ -21,33 +24,35 @@ export function ForecastPage() {
   const series = useAsync(() => (selected ? getForecast(selected, model) : Promise.resolve(null)), [selected, model])
   const seriesStatus = options.status === 'loading' || !selected || series.status === 'loading' ? 'loading' : series.status
   const points = visiblePoints(series.data?.points ?? [])
+  const restaurantOptions = ((options.data?.restaurant_ids ?? []) as string[]).map((item) => ({ value: item, label: `Restaurant ${item}` }))
+  const modelOptions = ((options.data?.models ?? ['ridge']) as string[]).map((item) => ({ value: item, label: item }))
 
   return (
     <div className="space-y-6">
-      <header>
-        <h1 className="text-2xl font-semibold tracking-tight">Demand forecast</h1>
-        <p className="mt-2 max-w-3xl text-sm text-slate-600">
-          {series.data?.notice ?? 'The chart reads the stored forecast. It does not fit a new model.'}
-        </p>
-      </header>
-      <div className="flex flex-col gap-3 sm:flex-row">
-        <label className="text-sm text-slate-600">
-          Restaurant
-          <select className="mt-1 block rounded-md border border-slate-300 bg-white px-3 py-2" value={selected} onChange={(event) => setRestaurantId(event.target.value)}>
-            {(options.data?.restaurant_ids ?? []).map((item: string) => (
-              <option key={item} value={item}>{item}</option>
-            ))}
-          </select>
-        </label>
-        <label className="text-sm text-slate-600">
-          Model
-          <select className="mt-1 block rounded-md border border-slate-300 bg-white px-3 py-2" value={model} onChange={(event) => setModelName(event.target.value)}>
-            {(options.data?.models ?? ['ridge']).map((item: string) => (
-              <option key={item} value={item}>{item}</option>
-            ))}
-          </select>
-        </label>
+      <PageHeader
+        title="Demand forecast"
+        description={series.data?.notice ?? 'The chart reads the stored forecast. It does not fit a new model.'}
+        actions={
+          <>
+            <SelectField label="Restaurant" value={selected} onChange={setRestaurantId} options={restaurantOptions} />
+            <SelectField label="Model" value={model} onChange={setModelName} options={modelOptions} />
+          </>
+        }
+      />
+
+      <div className="grid gap-4 sm:grid-cols-3">
+        {[
+          ['Holdout MAE', series.data?.evaluation?.mae],
+          ['Holdout RMSE', series.data?.evaluation?.rmse],
+          ['Holdout WAPE', series.data?.evaluation?.wape],
+        ].map(([label, value]) => (
+          <div key={String(label)} className="rounded-card border border-line bg-card p-5 shadow-card">
+            <p className="text-[13px] font-medium text-ink-3">{String(label)}</p>
+            <p className="mt-1 text-[26px] leading-8 font-bold tracking-tight text-ink tabular-nums">{formatNumber(value, 3)}</p>
+          </div>
+        ))}
       </div>
+
       <Panel
         title="History and forward forecast"
         description="The solid line is actual restaurant demand. The dashed line is the stored forward prediction. The chart keeps the latest 45 historical days so the forecast period stays visible."
@@ -56,15 +61,15 @@ export function ForecastPage() {
         empty={!points.length}
         emptyMessage="No stored history or forward forecast for this restaurant."
       >
-        <p className="mb-3 text-sm text-slate-600">
-          Stored holdout MAE {formatNumber(series.data?.evaluation?.mae, 3)}, RMSE {formatNumber(series.data?.evaluation?.rmse, 3)}, WAPE {formatNumber(series.data?.evaluation?.wape, 3)}. WAPE above 1 means absolute error exceeded total holdout demand. Uncertainty intervals are not in the forecast file, so none are drawn.
-        </p>
+        <p className="mb-3 text-[13px] leading-5 text-ink-3">WAPE above 1 means absolute error exceeded total holdout demand. Uncertainty intervals are not in the forecast file, so none are drawn.</p>
         <PlotlyChart
           title="Actual and predicted demand"
-          height={380}
+          height={400}
+          xTitle="Date"
+          yTitle="Orders"
           data={[
-            { type: 'scatter', mode: 'lines', name: 'Historical demand', x: points.map((point) => point.date), y: points.map((point) => point.actual) },
-            { type: 'scatter', mode: 'lines', name: 'Predicted demand', x: points.map((point) => point.date), y: points.map((point) => point.predicted), line: { dash: 'dash' } },
+            { type: 'scatter', mode: 'lines', name: 'Historical demand', x: points.map((point) => point.date), y: points.map((point) => point.actual), line: { color: '#3B6CF6', width: 3 } },
+            { type: 'scatter', mode: 'lines', name: 'Predicted demand', x: points.map((point) => point.date), y: points.map((point) => point.predicted), line: { color: '#F26B1D', width: 3, dash: 'dash' } },
           ]}
         />
       </Panel>

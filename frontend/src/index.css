@@ -1,8 +1,76 @@
 @import "tailwindcss";
 
+@theme {
+  --font-sans: "Plus Jakarta Sans", ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif;
+  --font-display: "Instrument Serif", "Iowan Old Style", Georgia, serif;
+
+  /* Dashboard surfaces */
+  --color-canvas: #f4f5f9;
+  --color-card: #ffffff;
+  --color-line: #e8eaf2;
+  --color-ink: #1b1d2a;
+  --color-ink-2: #4b5066;
+  --color-ink-3: #686e84;
+
+  /* Brand: orange for the app, gold for the dark landing surfaces */
+  --color-brand: #f26b1d;
+  --color-brand-strong: #cf4d09;
+  --color-brand-soft: #fff1e8;
+  --color-gold: #e0bc6a;
+  --color-night: #140d0b;
+
+  /* Semantic */
+  --color-good: #12a594;
+  --color-good-soft: #e3f6f3;
+  --color-warn: #b57f00;
+  --color-warn-soft: #fff4d6;
+  --color-bad: #d6333a;
+  --color-bad-soft: #fdebec;
+  --color-info: #3b6cf6;
+  --color-info-soft: #e9efff;
+  --color-violet: #7c4ddb;
+  --color-violet-soft: #f1ebff;
+
+  --radius-card: 1rem;
+  --shadow-card: 0 1px 2px rgb(27 29 42 / 0.04), 0 8px 24px -12px rgb(27 29 42 / 0.08);
+}
+
 html,
 body,
 #root {
   height: 100%;
   margin: 0;
 }
+
+body {
+  font-family: var(--font-sans);
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-brand);
+  outline-offset: 2px;
+  border-radius: 6px;
+}
+
+@keyframes fp-shimmer {
+  0% { background-position: 200% 0; }
+  100% { background-position: -200% 0; }
+}
+
+.skeleton {
+  background: linear-gradient(100deg, #eef0f6 30%, #f8f9fc 50%, #eef0f6 70%);
+  background-size: 200% 100%;
+  animation: fp-shimmer 1.6s linear infinite;
+  border-radius: 0.75rem;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .skeleton { animation: none; }
+  html { scroll-behavior: auto; }
+}
+
+html { scroll-behavior: smooth; }
