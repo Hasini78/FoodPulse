@@ -1,32 +1,33 @@
-# React + TypeScript + Vite
+# FoodPulse frontend
 
-This template provides a minimal setup to get React working in Vite with HMR and some Oxlint rules.
+React 19 + TypeScript + Vite + Tailwind 4 + Plotly. No new dependencies were added in the UI refresh.
 
-Currently, two official plugins are available:
+## Run
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react) uses [Oxc](https://oxc.rs)
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react-swc) uses [SWC](https://swc.rs/)
-
-## React Compiler
-
-The React Compiler is not enabled on this template because of its impact on dev & build performances. To add it, see [this documentation](https://react.dev/learn/react-compiler/installation).
-
-## Expanding the Oxlint configuration
-
-If you are developing a production application, we recommend enabling type-aware lint rules by installing `oxlint-tsgolint` and editing `.oxlintrc.json`:
-
-```json
-{
-  "$schema": "./node_modules/oxlint/configuration_schema.json",
-  "plugins": ["react", "typescript", "oxc"],
-  "options": {
-    "typeAware": true
-  },
-  "rules": {
-    "react/rules-of-hooks": "error",
-    "react/only-export-components": ["warn", { "allowConstantExport": true }]
-  }
-}
+```bash
+npm install
+npm run dev      # http://localhost:5173, proxies /api to http://localhost:8000
+npm run build
 ```
 
-See the [Oxlint rules documentation](https://oxc.rs/docs/guide/usage/linter/rules) for the full list of rules and categories.
+## Routes
+
+| Path | Page |
+| --- | --- |
+| `/` | Landing page (dark hero) |
+| `/login` | Sign in |
+| `/app` | Dashboard overview |
+| `/app/restaurants`, `/sentiment`, `/segments`, `/churn`, `/recommendations`, `/forecast`, `/customers`, `/insights` | Analytics pages |
+
+## Hero photo
+
+The landing and sign-in pages draw a plated-dish backdrop in SVG. To use a real photograph, save it as `public/hero.jpg`; it is layered over the artwork automatically.
+
+## Sign-in
+
+The dashboard is open by default. To require sign-in, set `VITE_REQUIRE_AUTH=true`.
+`src/lib/auth.ts` posts `username` and `password` (form-encoded) to `POST /auth/login` and expects `{ "access_token": "..." }`. Edit that one function if your backend differs. The token is sent as a Bearer header on every API call.
+
+## Design tokens
+
+Colors, fonts and radii are defined in `src/index.css` under `@theme`. Chart colors live in `src/lib/chartTheme.ts`.
