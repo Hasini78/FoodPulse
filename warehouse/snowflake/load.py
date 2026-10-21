@@ -18,7 +18,7 @@ import hashlib
 import logging
 import math
 from dataclasses import dataclass
-from datetime import datetime, timezone
+from datetime import date, datetime, timezone
 from io import BytesIO
 from pathlib import Path
 
@@ -213,8 +213,12 @@ def _digest(path: Path) -> str:
 
 def _dataset(table: str) -> Dataset:
     from warehouse.snowflake.catalog import DATASETS_BY_TABLE
+    from warehouse.snowflake.star_catalog import STAR_BY_TABLE
 
-    return DATASETS_BY_TABLE[table]
+    dataset = DATASETS_BY_TABLE.get(table) or STAR_BY_TABLE.get(table)
+    if dataset is None:
+        raise KeyError(table)
+    return dataset
 
 
 def _failure_message(config: SnowflakeConfig, exc: Exception, context: str) -> str:
@@ -276,6 +280,24 @@ def _value(value: object, kind: str):
         if pd.isna(parsed):
             return None
         return parsed.to_pydatetime()
+    if kind == "date":
+        if isinstance(value, datetime):
+            return value.date()
+        if isinstance(value, date):
+            return value
+        parsed = pd.to_datetime(value, utc=True, errors="coerce")
+        if pd.isna(parsed):
+            return None
+        return parsed.date()
+    if kind == "boolean":
+        if isinstance(value, str):
+            lowered = value.strip().lower()
+            if lowered in {"true", "1", "yes"}:
+                return True
+            if lowered in {"false", "0", "no"}:
+                return False
+            return None
+        return bool(value)
     return str(value)
 
 

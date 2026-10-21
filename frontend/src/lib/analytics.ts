@@ -59,6 +59,20 @@ export async function getRecommendations(customerId: string) {
   return data
 }
 
+export async function getRecommendationDiscovery(
+  customerId: string,
+  filters: { cuisine?: string; category?: string } = {},
+) {
+  const { data } = await api.get(`/analytics/recommendations/${encodeURIComponent(customerId)}/discovery`, {
+    params: {
+      limit: 8,
+      cuisine: filters.cuisine || undefined,
+      category: filters.category || undefined,
+    },
+  })
+  return data
+}
+
 export async function getItemsets() {
   const { data } = await api.get('/analytics/association/itemsets', { params: { limit: 15 } })
   return data

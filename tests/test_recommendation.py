@@ -7,8 +7,8 @@ from pathlib import Path
 import pandas as pd
 import pytest
 
-from mining.recommendation.candidates import build_context, load_association_rules
-from mining.recommendation.evaluate import evaluate_holdout
+from mining.recommendation.candidates import build_context, food_candidate_rows, load_association_rules
+from mining.recommendation.evaluate import compare_holdout, evaluate_holdout
 from mining.recommendation.ranker import FOOD_COLUMNS, RESTAURANT_COLUMNS, recommend
 from mining.recommendation.run_recommendations import main, run_recommendations
 
@@ -278,3 +278,129 @@ def test_scores_are_deterministic(tmp_path: Path) -> None:
     pd.testing.assert_frame_equal(food_first, food_second)
     assert first["counts"]["food_recommendations"] == second["counts"]["food_recommendations"]
     assert before == {name: path.read_bytes() for name, path in paths.items()}
+
+
+def _empty_rules() -> pd.DataFrame:
+    return pd.DataFrame(columns=["antecedent_id", "consequent_id", "restaurant_id", "confidence", "lift", "support", "association_strength"])
+
+
+def test_holdout_excludes_last_order_and_reports_ndcg() -> None:
+    customers = _customers(1)
+    orders = _orders(
+        [
+            {"id": 1, "customer_id": 1, "restaurant_id": 1, "status": "completed", "order_date": "2026-01-01T00:00:00+00:00"},
+            {"id": 2, "customer_id": 1, "restaurant_id": 2, "status": "completed", "order_date": "2026-08-01T00:00:00+00:00"},
+        ]
+    )
+    items = _items([{"order_id": 1, "food_item_id": 1}, {"order_id": 2, "food_item_id": 3}])
+    metrics = evaluate_holdout(customers, orders, items, _foods(), _restaurants(), _reviews(), _sentiment(), pd.Timestamp(REFERENCE).date(), 5, 3, variant="baseline")
+    assert metrics["association_in_holdout"] is False
+    assert metrics["leaked_holdout_orders_in_training"] == 0
+    assert metrics["variant"] == "baseline"
+    assert metrics["food_eligible_customers"] == 1
+    assert 0.0 <= metrics["food_ndcg_at_k"] <= 1.0
+    assert 0.0 <= metrics["restaurant_ndcg_at_k"] <= 1.0
+    assert metrics["food_name_hit_rate_at_k"] is not None
+
+
+def test_improved_cold_start_prefers_popular_items() -> None:
+    customers = _customers(5)
+    orders = _orders(
+        [
+            {
+                "id": index,
+                "customer_id": 1,
+                "restaurant_id": 2,
+                "status": "completed",
+                "order_date": f"2026-01-{index:02d}T00:00:00+00:00",
+            }
+            for index in range(1, 6)
+        ]
+    )
+    items = _items([{"order_id": index, "food_item_id": 3} for index in range(1, 6)])
+    context = build_context(customers, orders, items, _foods(), _restaurants(), _reviews(), _sentiment(), pd.Timestamp(REFERENCE).date())
+    improved, _ = recommend(context, _empty_rules(), 2, 2, variant="improved")
+    baseline_pool = [row["food_item_id"] for row in food_candidate_rows(context, [], "5", variant="baseline")]
+    improved_pool = [row["food_item_id"] for row in food_candidate_rows(context, [], "5", variant="improved")]
+    assert improved.iloc[0]["food_item_id"] == "3"
+    assert improved_pool[0] == "3"
+    assert baseline_pool[:2] == ["1", "11"]
+    assert set(improved["reason"]) == {"general pick for limited history"}
+
+
+def test_recommendations_differ_by_customer_history() -> None:
+    customers = _customers(1, 2)
+    orders = _orders(
+        [
+            {"id": 1, "customer_id": 1, "restaurant_id": 1, "status": "completed", "order_date": "2026-01-01T00:00:00+00:00"},
+            {"id": 2, "customer_id": 1, "restaurant_id": 1, "status": "completed", "order_date": "2026-02-01T00:00:00+00:00"},
+            {"id": 3, "customer_id": 1, "restaurant_id": 1, "status": "completed", "order_date": "2026-03-01T00:00:00+00:00"},
+            {"id": 4, "customer_id": 2, "restaurant_id": 2, "status": "completed", "order_date": "2026-01-01T00:00:00+00:00"},
+            {"id": 5, "customer_id": 2, "restaurant_id": 2, "status": "completed", "order_date": "2026-02-01T00:00:00+00:00"},
+            {"id": 6, "customer_id": 2, "restaurant_id": 2, "status": "completed", "order_date": "2026-03-01T00:00:00+00:00"},
+        ]
+    )
+    items = _items(
+        [
+            {"order_id": 1, "food_item_id": 1},
+            {"order_id": 2, "food_item_id": 1},
+            {"order_id": 3, "food_item_id": 4},
+            {"order_id": 4, "food_item_id": 3},
+            {"order_id": 5, "food_item_id": 3},
+            {"order_id": 6, "food_item_id": 3},
+        ]
+    )
+    context = build_context(customers, orders, items, _foods(), _restaurants(), _reviews(), _sentiment(), pd.Timestamp(REFERENCE).date())
+    food, restaurants = recommend(context, _empty_rules(), 5, 2, variant="improved")
+    one = set(food.loc[food["customer_id"] == "1", "food_item_id"])
+    two = set(food.loc[food["customer_id"] == "2", "food_item_id"])
+    assert one != two
+    assert list(restaurants.loc[restaurants["customer_id"] == "1", "restaurant_id"]) != list(
+        restaurants.loc[restaurants["customer_id"] == "2", "restaurant_id"]
+    )
+
+
+def test_unknown_variant_is_rejected() -> None:
+    customers, orders, items = _world()
+    context = build_context(customers, orders, items, _foods(), _restaurants(), _reviews(), _sentiment(), pd.Timestamp(REFERENCE).date())
+    with pytest.raises(ValueError, match="variant"):
+        recommend(context, _empty_rules(), 3, 2, variant="not-a-variant")
+
+
+def test_compare_holdout_uses_the_same_split() -> None:
+    customers = _customers(1)
+    orders = _orders(
+        [
+            {"id": 1, "customer_id": 1, "restaurant_id": 1, "status": "completed", "order_date": "2026-01-01T00:00:00+00:00"},
+            {"id": 2, "customer_id": 1, "restaurant_id": 2, "status": "completed", "order_date": "2026-08-01T00:00:00+00:00"},
+        ]
+    )
+    items = _items([{"order_id": 1, "food_item_id": 1}, {"order_id": 2, "food_item_id": 3}])
+    payload = compare_holdout(customers, orders, items, _foods(), _restaurants(), _reviews(), _sentiment(), pd.Timestamp(REFERENCE).date(), 5, 3)
+    assert payload["baseline"]["variant"] == "baseline"
+    assert payload["improved"]["variant"] == "improved"
+    assert payload["baseline"]["food_eligible_customers"] == payload["improved"]["food_eligible_customers"]
+    assert payload["baseline"]["association_in_holdout"] is False
+    assert payload["improved"]["association_in_holdout"] is False
+    assert "prefer_improved" in payload
+    assert "food_hit_rate_at_k" in payload["delta_improved_minus_baseline"]
+
+
+def test_default_variant_is_the_preserved_baseline() -> None:
+    customers, orders, items = _world()
+    context = build_context(customers, orders, items, _foods(), _restaurants(), _reviews(), _sentiment(), pd.Timestamp(REFERENCE).date())
+    default_food, default_restaurants = recommend(context, _empty_rules(), 5, 2)
+    baseline_food, baseline_restaurants = recommend(context, _empty_rules(), 5, 2, variant="baseline")
+    pd.testing.assert_frame_equal(default_food, baseline_food)
+    pd.testing.assert_frame_equal(default_restaurants, baseline_restaurants)
+
+
+def test_baseline_variant_keeps_original_cold_start_pool() -> None:
+    customers = _customers(5)
+    orders = _orders([{"id": 1, "customer_id": 1, "restaurant_id": 1, "status": "completed", "order_date": "2026-01-01T00:00:00+00:00"}]).iloc[0:0]
+    items = _items([{"order_id": 1, "food_item_id": 1}]).iloc[0:0]
+    context = build_context(customers, orders, items, _foods(), _restaurants(), _reviews(), _sentiment(), pd.Timestamp(REFERENCE).date())
+    food, restaurants = recommend(context, _empty_rules(), 3, 2, variant="baseline")
+    assert not food.empty
+    assert set(food["reason"]) == {"general pick for limited history"}
+    assert set(restaurants["reason"]) == {"general pick for limited history"}

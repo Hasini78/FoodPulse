@@ -1,142 +1,98 @@
 # FoodPulse — Restaurant Intelligence & Customer Experience Mining Platform
 
-FoodPulse is a data mining and analytics platform that transforms restaurant, customer, order, and review data into actionable insights. It combines data engineering, machine learning, sentiment analysis, recommendation systems, demand forecasting, warehouse publishing, workflow orchestration, and an interactive analytics dashboard.
+FoodPulse is a data-mining and restaurant analytics platform that transforms restaurant, customer, order, and review data into actionable insights. It combines data engineering, machine learning, sentiment analysis, customer segmentation, recommendation systems, demand forecasting, data warehouse integration, workflow orchestration, and an interactive web application.
 
-The platform helps explore customer behavior, restaurant performance, review sentiment, food-item associations, inactivity risk, personalized recommendations, and expected demand.
+FoodPulse has two complementary goals:
+
+- **Food Discovery:** Help users discover relevant food items and restaurants through personalized, explainable recommendations.
+- **Restaurant Intelligence:** Help analysts and restaurant owners understand customer behavior, satisfaction, purchasing patterns, restaurant performance, and demand.
+
+The platform connects data mining with practical decisions through interactive food and restaurant cards, recommendation explanations, analytical visualizations, and customer behavior insights.
 
 ## Key Features
 
-- **Data engineering:** CSV-based ingestion, data cleaning, validation, and feature engineering using Pandas.
-- **Sentiment analysis:** VADER sentiment scoring, lexicon-based aspect sentiment, and an optional transformer-based sentiment backend.
-- **Customer segmentation:** Clustering customers using purchasing behavior and review features.
-- **Association rule mining:** Apriori-based discovery of frequently co-purchased food items.
-- **Customer inactivity analysis:** Rule-based risk scoring using completed-order history and customer feedback.
-- **Recommendation system:** Personalized food and restaurant recommendations using customer history, item associations, quality, and popularity.
-- **Demand forecasting:** Ridge regression and seasonal-naive forecasts for restaurant orders and food-item quantities.
-- **Distributed feature engineering:** A standalone PySpark job for scalable customer and restaurant feature aggregation.
-- **Snowflake integration:** Analytical Parquet publishing into Snowflake tables, with dry-run and explicit live-execution modes.
-- **Workflow orchestration:** An Airflow DAG that coordinates the existing ETL and data mining modules.
-- **Analytics dashboard:** A React application with interactive Plotly visualizations backed by FastAPI.
-- **Operational API and database:** FastAPI endpoints, PostgreSQL, SQLAlchemy, and JWT-based authentication infrastructure.
+- **Data Engineering:** CSV ingestion, data validation, cleaning, and feature engineering using Pandas.
+- **Sentiment Analysis:** VADER-based sentiment scoring, lexicon-based aspect analysis, and optional transformer-based sentiment inference.
+- **Customer Segmentation:** Clustering customers using purchasing behavior and available feedback features.
+- **Association Rule Mining:** Apriori-based discovery of frequently co-purchased food items.
+- **Customer Churn-Risk Analysis:** Rule-based inactivity and customer risk scoring.
+- **Food Recommendations:** Ranked food-item suggestions using available purchase history, item associations, quality, familiarity, and popularity signals.
+- **Restaurant Recommendations:** Restaurant rankings based on relevant customer preferences, cuisine, quality, and available analytical features.
+- **Explainable Recommendations:** Short reasons that communicate why a food item or restaurant is suggested.
+- **Food Discovery Interface:** Dedicated recommendation sections for personalized choices, popular items, similar items, complementary food, restaurants, and new discoveries.
+- **Demand Forecasting:** Ridge regression and seasonal-naive forecasts for restaurant orders and food-item quantities.
+- **Interactive Analytics Dashboard:** React, TypeScript, and Plotly visualizations for restaurant performance, customer segments, sentiment, churn, recommendations, and forecasts.
+- **PostgreSQL Operational API:** FastAPI, SQLAlchemy, database models, authentication infrastructure, and operational statistics endpoints.
+- **Snowflake Integration:** Analytical dataset publishing with dry-run and explicit live-execution modes.
+- **Airflow Orchestration:** Workflow coordination for existing ETL and mining modules.
+- **Optional Distributed Processing:** PySpark-based customer and restaurant feature aggregation.
 
 ## Technology Stack
 
 | Layer | Technologies |
 |---|---|
-| Programming | Python, SQL, TypeScript, JavaScript |
+| Programming languages | Python, SQL, TypeScript, JavaScript |
 | Data engineering | Pandas, NumPy, PyArrow |
-| Data mining and ML | scikit-learn, mlxtend, VADER |
-| Optional NLP | Transformers, PyTorch |
-| Distributed processing | Apache Spark / PySpark |
+| Data mining and machine learning | scikit-learn, MLxtend |
+| Sentiment analysis | VADER, optional Transformers and PyTorch |
+| Distributed processing | Apache Spark, PySpark |
 | Operational database | PostgreSQL |
 | Data warehouse | Snowflake |
-| Workflow orchestration | Apache Airflow, Docker Compose |
-| Backend | FastAPI, SQLAlchemy |
+| Backend | FastAPI, Uvicorn, SQLAlchemy |
 | Frontend | React, Vite, TypeScript, Tailwind CSS, Plotly |
-| Testing | pytest, temporary Parquet datasets, mocked warehouse connections |
-| Development | Git, GitHub, PowerShell, VS Code / Cursor |
+| Workflow orchestration | Apache Airflow, Docker Compose |
+| Testing | Pytest |
+| Development tools | Git, GitHub, VS Code, Cursor |
+- **Maps and Location Services:** Google Maps JavaScript API, Google Places functionality, browser Geolocation API
+- **Testing:** pytest, frontend test suite, oxlint, TypeScript and Vite production build
 
 ## System Architecture
 
 ```text
-Raw / Sample CSV Data
-        |
-        v
-Data Cleaning, Validation & Feature Engineering
-                 (Pandas)
-        |
-        v
-Processed Parquet Datasets
-        |
-        +-------------------------------+
-        |               |               |
-        v               v               v
-    Sentiment       Clustering      Association
-    Analysis                        Rule Mining
-        |               |               |
-        +---------------+---------------+
-                        |
-           +------------+------------+
-           |            |            |
-           v            v            v
-         Churn     Recommendations Forecasting
-        Analysis                  Models
-           |            |            |
-           +------------+------------+
-                        |
-              +---------+---------+
-              |                   |
-              v                   v
-       Optional PySpark       Snowflake
-       Feature Processing     Analytics Load
-                                  |
-                                  v
-                         Analytical Snapshots
+                  Raw / Sample Data
+                         |
+                         v
+               ETL and Data Validation
+                         |
+                         v
+               Processed Parquet Data
+                         |
+          +--------------+--------------+
+          |              |              |
+          v              v              v
+      Sentiment       Customer       Association
+      Analysis       Segmentation    Rule Mining
+          |              |              |
+          +--------------+--------------+
+                         |
+             +-----------+-----------+
+             |           |           |
+             v           v           v
+           Churn     Recommendations Forecasting
+          Analysis       Engine       Models
+             |           |
+             +-----------+
+                   |
+                   v
+              FastAPI Backend
+                   |
+                   v
+             React Frontend
+                   |
+          +--------+---------+
+          |                  |
+          v                  v
+     Food Discovery     Business Insights
+     Food and          Interactive Reports
+     Restaurant Cards  and Charts
 
-Processed Parquet --> FastAPI --> React / Plotly Dashboard
-
-Airflow DAG --> Coordinates the existing processing commands
-
-PostgreSQL --> Operational database and API statistics
+  PostgreSQL --> Operational records and API statistics
+  Snowflake  --> Analytical data publishing and warehouse
+  Airflow    --> Orchestrates supported pipeline tasks
+  PySpark    --> Optional distributed feature aggregation
 ```
 
-**Important:** The current mining modules primarily use local processed Parquet files. Snowflake publishing is a separate operation, and the React dashboard reads processed files through FastAPI rather than querying Snowflake directly. PostgreSQL is the operational database, not a substitute for the analytics datasets.
-
-## Project Structure
-
-```text
-FoodPulse/
-├── backend/
-│   ├── app/
-│   │   ├── api/
-│   │   ├── models/
-│   │   ├── schemas/
-│   │   ├── services/
-│   │   ├── core/
-│   │   ├── db/
-│   │   └── main.py
-│   └── tests/
-├── frontend/
-│   └── React + TypeScript + Vite dashboard
-├── etl/
-│   ├── extract/
-│   ├── transform/
-│   ├── load/
-│   └── pipelines/
-├── data/
-│   ├── raw/
-│   ├── sample/
-│   └── processed/
-├── mining/
-│   ├── sentiment/
-│   ├── clustering/
-│   ├── association/
-│   ├── churn/
-│   ├── recommendation/
-│   └── forecasting/
-├── pyspark/
-│   └── jobs/
-│       └── feature_aggregations.py
-├── warehouse/
-│   ├── snowflake/
-│   ├── dimensions/
-│   ├── facts/
-│   └── sql/
-├── airflow/
-│   ├── dags/
-│   │   ├── foodpulse_flow.py
-│   │   └── foodpulse_pipeline.py
-│   ├── Dockerfile
-│   └── requirements.txt
-├── tests/
-├── docker-compose.yml
-├── docker-compose.airflow.yml
-├── requirements.txt
-├── Makefile
-└── README.md
-```
-
-The dimensions, facts, and general warehouse SQL directories remain placeholders for a future dimensional warehouse implementation. The existing Snowflake loader publishes analytical snapshots; it does not yet implement a complete star-schema warehouse.
+**Data-flow note:** The mining modules primarily consume local processed Parquet files. The dashboard accesses analytical results through FastAPI. PostgreSQL operational statistics are separate from processed-data analytics. Snowflake publishing is a separate workflow and is not automatically triggered when a dashboard page loads.
 
 ## Implemented Data Mining Modules
 
@@ -144,47 +100,54 @@ The dimensions, facts, and general warehouse SQL directories remain placeholders
 
 **Location:** `etl/transform/`, `etl/pipelines/`
 
-The Pandas pipeline cleans input datasets, validates their structure and relationships, generates a validation report, and creates processed Parquet datasets.
+The Pandas-based ETL pipeline validates source data, cleans records, checks relationships, generates data-quality reports, and produces processed Parquet datasets.
 
 Features include:
 
 - Missing-value and duplicate-key handling.
-- Referential integrity and business-rule validation.
+- Referential-integrity and business-rule validation.
 - Order outlier detection and capped analytical values.
-- Customer purchasing features and restaurant performance features.
-- Reference-date-aware features that exclude future events.
+- Customer purchasing and restaurant performance features.
+- Reference-date-aware calculations that exclude future events.
+- Validation reports and processed entity and feature datasets.
 
-The pipeline writes `validation_report.json` and processed entity and feature files. Critical validation failures stop feature generation.
+The pipeline generates `validation_report.json` and processed Parquet outputs. Critical validation failures stop feature generation.
 
 ### 2. Sentiment Analysis
 
 **Location:** `mining/sentiment/`
 
-Implemented capabilities:
+Implemented capabilities include:
 
-- Overall sentiment scoring with VADER.
+- Overall review sentiment scoring using VADER.
 - Positive, negative, neutral, and invalid classifications.
-- Aspect sentiment for food, service, ambience, and price using a keyword lexicon.
+- Lexicon-based aspect sentiment for food, service, ambience, and price.
 - Sentiment aggregation by restaurant, city, cuisine, and month.
-- Optional transformer-based scoring using `cardiffnlp/twitter-roberta-base-sentiment-latest`.
+- Optional transformer-based sentiment inference using `cardiffnlp/twitter-roberta-base-sentiment-latest`.
 
-VADER is the default. Transformer inference is an optional backend selected through `SENTIMENT_MODEL=transformer`.
+VADER is the default backend. Transformer inference can be selected using `SENTIMENT_MODEL=transformer`.
 
-The transformer was smoke-tested on five hand-written texts. This was not an accuracy evaluation on the project's 3,000 reviews. Aspect labels are lexicon-based rather than predictions from a trained aspect model.
+The transformer smoke test is not a full accuracy evaluation against a labeled dataset. Aspect labels are lexicon-based rather than outputs from a trained aspect model.
 
 ### 3. Customer Segmentation
 
 **Location:** `mining/clustering/`
 
-Customers are grouped using purchasing behavior and feedback features such as recency, order frequency, total spend, average order value, rating, and sentiment.
+The clustering module groups customers using purchasing and feedback features, including:
 
-The module evaluates K-Means, agglomerative clustering, and DBSCAN using clustering-quality metrics. Labels such as `high-value loyal` and `inactive/at-risk` are descriptive interpretations of cluster behavior, not a validated customer taxonomy.
+- Recency and order frequency.
+- Total spend and average order value.
+- Ratings and sentiment, when available.
+
+The module evaluates K-Means, agglomerative clustering, and DBSCAN using clustering-quality metrics.
+
+Cluster labels are descriptive interpretations of customer behavior, not a validated customer taxonomy.
 
 ### 4. Association Rule Mining
 
 **Location:** `mining/association/`
 
-The module uses Apriori from `mlxtend` to discover food items that frequently appear together in completed orders.
+The module uses Apriori from MLxtend to discover food items that frequently occur together in completed orders.
 
 Metrics include:
 
@@ -194,30 +157,132 @@ Metrics include:
 - Leverage.
 - Conviction.
 
-Both global mining and optional restaurant-specific mining are supported. Food-item IDs distinguish catalog entries that share the same display name. Association indicates co-occurrence, not causation.
+Global mining and optional restaurant-specific mining are supported. Food-item identifiers distinguish catalog entries that share the same display name.
+
+Association indicates co-occurrence, not causation. These patterns can support complementary-item recommendations.
 
 ### 5. Customer Inactivity and Churn-Risk Analysis
 
 **Location:** `mining/churn/`
 
-The module calculates inactivity from the last completed order and assigns rule-based risk categories.
+The module calculates customer inactivity from completed-order history and assigns rule-based risk categories.
 
-It also considers order frequency, purchase gaps, changes in recent activity, ratings, and sentiment. The risk score is a capped heuristic, **not a calibrated probability of customer churn**. The categories do not establish that a customer has permanently left.
+It considers features such as order frequency, purchase gaps, recent activity changes, ratings, and sentiment where available.
 
-### 6. Personalized Recommendations
+The risk score is a heuristic, not a calibrated probability that a customer will churn.
 
-**Location:** `mining/recommendation/`
+### 6. Food and Restaurant Recommendation System
 
-The recommendation engine generates food-item and restaurant rankings using:
+**Location:** `mining/recommendation/`, `backend/app/services/`, `backend/app/api/analytics.py`
+
+FoodPulse includes a recommendation engine and a user-facing discovery interface that present mining results through food-item and restaurant cards.
+
+The recommendation foundation uses available signals such as:
 
 - Customer purchase history.
-- Cuisine preference.
+- Cuisine preferences.
 - Association-rule strength.
-- Restaurant quality.
+- Restaurant quality and ratings.
 - Familiarity and popularity.
-- A cold-start scoring approach for limited purchase histories.
+- Cold-start scoring for limited purchase histories.
 
-The module produces ranked recommendations and reason descriptions. Scores represent ranking strength, not purchase probabilities. Holdout evaluation is implemented, although the observed hit rates on the sample dataset were low.
+The recommendation API exposes ranked recommendations and supporting explanations. The interface separates food discovery from detailed business analytics.
+
+#### Food Discovery Sections
+
+The discovery interface organizes recommendations into six sections.
+
+**1. Picked for You**
+
+Ranks food items using available individual customer history and relevant preference signals. When purchase history is insufficient, the system should provide an appropriate fallback rather than imply strong personalization.
+
+**2. Popular Choices**
+
+Surfaces popular food items and restaurants based on available data. Popularity-based suggestions are distinguished from individualized recommendations.
+
+**3. Similar to What You Like**
+
+Suggests similar food items using available item attributes and purchasing patterns. Similarity depends on the attributes and history available in the processed datasets.
+
+**4. Frequently Bought Together**
+
+Uses association-rule mining to identify complementary items that frequently appear together in completed orders. The section translates association-rule results into understandable food suggestions.
+
+**5. Restaurants for You**
+
+Ranks restaurants using relevant available preferences and attributes, such as cuisine, quality, popularity, and customer history.
+
+**6. Explore Something New**
+
+Provides relevant alternatives and less repetitive suggestions. Recommendations are de-duplicated across applicable sections to reduce unnecessary repetition.
+
+#### Recommendation Cards and Interactions
+
+The frontend presents discovery results through card-based layouts rather than requiring users to interpret mining tables directly.
+
+The discovery experience includes:
+
+- Separate food-item and restaurant recommendations.
+- Search and useful filters.
+- Short explanations for recommendation choices.
+- Data-backed popularity and similarity signals.
+- Complementary-item suggestions.
+- Alternative discovery options.
+- Responsive layouts and loading or empty states.
+
+Food names and item identifiers must remain distinct because different catalog entries may share the same display name.
+
+Images, prices, ingredients, ratings, and availability must come from verified data sources. Missing attributes should not be invented or presented as verified facts.
+
+#### Recommendation Limitations
+
+- Recommendation scores represent ranking strength, not purchase probabilities.
+- Personalized suggestions depend on the available customer history.
+- General popularity results are not equivalent to personalized recommendations.
+- Sparse interaction history can reduce recommendation quality.
+- Association rules show co-occurrence, not causation.
+- Recommendation quality requires continued evaluation using suitable holdout data.
+
+A previous holdout evaluation reported the following results:
+
+| Evaluation | Precision | Recall | Hit Rate |
+|---|---:|---:|---:|
+| Food items at 5 | 0.0053 | 0.0163 | 0.0244 |
+| Restaurants at 3 | 0.0213 | 0.0639 | 0.0639 |
+
+These are previously recorded results, not a guarantee of current performance. They indicate that recommendation quality remains an area for improvement. Association rules were excluded from that holdout evaluation to avoid using full-history mining results that could leak future information.
+
+### Nearby Restaurants — Google Maps Integration
+
+- Added a Nearby Restaurants page at `/app/nearby`.
+- Users can search for real-world restaurants by destination, such as a city, address, college, landmark, or tourist destination.
+- Supports browser geolocation after the user grants permission.
+- Displays Google Maps markers and a corresponding restaurant list.
+- Shows restaurant names and available ratings, review counts, addresses, and price information when returned by Google Places.
+- Provides Google Maps directions links.
+- Handles loading, empty results, missing API key, location permission denial, and API errors.
+- Loads Google Maps only when needed on the Nearby page.
+- Uses a Google Maps Demo Key; supported features and quotas apply.
+
+**Data separation:** Google Places listings are real-world results and are not treated as FoodPulse sample restaurants.
+
+### Nearby-to-Recommendations Integration
+
+- Users can select a sample FoodPulse customer from the existing recommendation customer list.
+- The Nearby page links to that customer's stored recommendations.
+- Supported Google `primaryType` values can map to FoodPulse cuisine filters when the mapping is unambiguous.
+- Generic or ambiguous restaurant types do not trigger guessed cuisine filters.
+- Recommendation cards remain labelled as sample-data rankings, not dishes from the selected Google restaurant.
+- No matching is performed using Google Place IDs, restaurant names, addresses, or coordinates.
+
+### Discovery and Analytics Improvements
+
+- Improved discovery filters, recommendation cards, loading states, empty states, and error messages.
+- Added explanations for metrics, data sources, and score interpretation.
+- Clarified association-rule support, confidence, lift, and basket scope.
+- Distinguished historical demand from forward forecasts.
+- Clarified that review sentiment and restaurant ratings come from sample data rather than live public reviews.
+- Improved responsive layouts and data-provenance messaging across analytics pages.
 
 ### 7. Demand Forecasting
 
@@ -230,27 +295,23 @@ Supported models:
 - Ridge regression.
 - Seasonal-naive baseline.
 
-The implementation supports daily and weekly aggregation, chronological holdout evaluation, and forward forecasts. It reports MAE, RMSE, and WAPE.
+Features include daily and weekly aggregation, chronological holdout evaluation, forward forecasts, and MAE, RMSE, and WAPE metrics.
 
-Forecasts are clipped at zero. The current output does not include prediction intervals, and sparse demand can result in high WAPE values. Results should not be treated as a production-ready staffing or purchasing plan.
+Forecasts are clipped at zero. Prediction intervals are not currently included, and sparse demand may produce high WAPE values. Forecasts should not be treated as guaranteed production demand.
 
 ## PySpark Feature Engineering
 
 **Location:** `pyspark/jobs/feature_aggregations.py`
 
-A separate Spark job performs customer and restaurant feature aggregation from prepared Parquet datasets.
+A standalone Spark job performs customer and restaurant feature aggregation from prepared Parquet datasets.
 
-Features:
+Features include completed-order filtering, reference-date-aware calculations, customer and restaurant outputs, restaurant activity summaries, and optional sentiment counts.
 
-- Completed-order filtering.
-- Reference-date-aware feature calculations.
-- Customer and restaurant feature outputs.
-- Restaurant activity summaries.
-- Optional restaurant sentiment counts.
+The standalone job writes to `data/processed/spark_features/` by default. It does not replace the Pandas ETL outputs or write to PostgreSQL.
 
-The standalone job writes to `data/processed/spark_features/` by default. It does not replace the existing Pandas ETL feature files, modify sample CSVs, or write to PostgreSQL.
+The job was locally verified on 12 October 2026, producing 500 customer rows and 50 restaurant rows, with shared numeric features matching Pandas outputs for the same reference date.
 
-**Verification:** The job was run locally on 12 October 2026. It returned 500 customer rows and 50 restaurant rows, and the shared numeric feature columns matched the Pandas outputs for the same reference date.
+Spark remains optional in the Airflow workflow.
 
 ## Snowflake Analytics Integration
 
@@ -258,118 +319,121 @@ The standalone job writes to `data/processed/spark_features/` by default. It doe
 
 The Snowflake loader publishes approved processed Parquet datasets into the `FOODPULSE.ANALYTICS` schema.
 
-Implemented capabilities:
+Implemented capabilities include:
 
-- Configuration through environment variables.
-- Local file and schema validation before connecting.
+- Environment-based configuration.
+- Local file and schema validation.
 - Dry-run planning and table row counts.
 - Optional connection verification.
 - Parameterized row loading.
 - Temporary staging tables and snapshot replacement.
-- Row-count verification and transaction rollback for failed table loads.
+- Row-count verification and rollback for failed table loads.
 - Sanitized error reporting.
 
-The default mode is a dry run. A live load requires explicit use of `--execute` and valid Snowflake credentials and permissions.
+The default mode is a dry run. Live loading requires explicit execution and valid Snowflake credentials and permissions.
 
-A previous live account test completed the analytical load. Automated tests use mocked connections and do not require Snowflake credentials.
+A previous live account test completed an analytical load. Automated loader tests use mocked connections and do not require a live Snowflake account.
 
-**Current limitation:** The existing loader publishes analytical snapshots, not a fully implemented dimensional star schema. The `warehouse/dimensions/`, `warehouse/facts/`, and `warehouse/sql/` directories still need their planned implementation.
+The dimensional star schema is implemented beside the snapshots. It does not replace them.
+
+- Dimensions: `DIM_DATE`, `DIM_CUSTOMER`, `DIM_RESTAURANT`, `DIM_FOOD_ITEM`.
+- Facts: `FACT_ORDERS` (one row per order), `FACT_REVIEWS` (one row per review).
+- Surrogate keys are deterministic source integer ids. Foreign keys are validated in tests and in `warehouse/snowflake/sql/star_validate.sql`.
+- Contact details, hashed passwords, and review body text are not loaded.
+- `DIM_LOCATION`, `DIM_USER`, and `FACT_ORDER_ITEMS` are omitted because the requested model and source files do not support them without inventing grain or PII.
+
+Dry-run the star transform without connecting:
+
+```powershell
+.\.venv\Scripts\python.exe -m warehouse.snowflake.run_star --dry-run
+```
+
+Details: `warehouse/README.md`, `warehouse/snowflake/sql/star_schema.sql`, `warehouse/snowflake/sql/star_load.sql`, `warehouse/snowflake/sql/star_validate.sql`.
+
+A live star load still requires a Snowflake warehouse, `SNOWFLAKE_*` settings, and an explicit `--execute`. This repository does not run those statements.
 
 ## Airflow Workflow Orchestration
 
 **Location:** `airflow/dags/`, `docker-compose.airflow.yml`
 
-The `foodpulse_pipeline` DAG coordinates the existing processing commands rather than reimplementing the ETL and mining logic.
+The `foodpulse_pipeline` DAG coordinates existing processing commands rather than reimplementing the mining algorithms.
 
 ### Workflow
 
-1. **Input validation:** Checks the required sample CSV files and resolves the reference date.
-2. **ETL and feature engineering:** Runs the Pandas transform pipeline.
-3. **Parallel processing:** Runs sentiment analysis, association rule mining, and demand forecasting.
-4. **Customer analysis:** Runs clustering and inactivity-risk analysis after sentiment processing.
-5. **Recommendations:** Uses association rules and sentiment outputs to generate recommendations.
-6. **Optional Spark processing:** Runs only when `FOODPULSE_SPARK=1`.
-7. **Optional Snowflake publishing:** Runs only when `FOODPULSE_SNOWFLAKE_LOAD=1`.
-8. **Output validation:** Checks expected output files after the upstream tasks finish.
+1. Validate input files and resolve the reference date.
+2. Run ETL and feature engineering.
+3. Run sentiment analysis, association-rule mining, and demand forecasting.
+4. Run customer segmentation and churn-risk analysis.
+5. Generate recommendations.
+6. Optionally run Spark feature processing.
+7. Optionally run the Snowflake publishing task.
+8. Validate the expected output files.
 
-The Snowflake task defaults to a dry run. A live warehouse load additionally requires `FOODPULSE_SNOWFLAKE_EXECUTE=1`.
+The Airflow environment includes a webserver, scheduler, PostgreSQL metadata database, LocalExecutor configuration, and mounted DAG and project directories.
 
-### Airflow Runtime
-
-The optional Docker Compose setup includes:
-
-- Airflow webserver.
-- Airflow scheduler.
-- PostgreSQL metadata database.
-- LocalExecutor configuration.
-- A mounted DAG directory and FoodPulse project directory.
-
-The Airflow UI is available at [http://localhost:8080](http://localhost:8080) when the services are running and initialization succeeds.
+The Airflow UI is available at `http://localhost:8080` when services are running and initialized.
 
 ### Verification Status
 
-The FoodPulse Airflow workflow was manually executed and verified on 19 October 2026.
+The workflow was manually executed on 19 October 2026.
 
-- The `foodpulse_pipeline` DAG was visible in the Airflow UI, and the scheduler and webserver were running.
-- The manual run completed successfully for input validation, ETL and feature engineering, sentiment analysis, demand forecasting, customer clustering, churn-risk analysis, association rule mining, personalized recommendations, the Snowflake dry-run task, and final output validation.
-- The `spark_features` task was skipped because optional Spark processing was disabled. This is expected behavior when `FOODPULSE_SPARK` is not enabled.
-- The association rule mining task completed successfully after reducing Apriori's memory usage with `low_memory=True`.
-- The Snowflake task completed in **dry-run mode**. It validated and planned the analytical publishing operation; this successful task does **not** mean that data was written to Snowflake.
-- Final output validation succeeded.
+- Input validation, ETL, sentiment, forecasting, clustering, churn analysis, association mining, recommendations, Snowflake dry-run, and output validation completed successfully.
+- The Spark task was skipped because optional Spark processing was disabled.
+- Association mining completed after enabling Apriori's `low_memory=True` option.
+- The Snowflake task completed in dry-run mode. It did not write data to Snowflake during that run.
 
-The successful DAG run verifies orchestration of the configured workflow. It does not establish that this particular DAG run performed a live Snowflake load.
+A successful dry run verifies the configured planning workflow, not a live warehouse load.
 
-### Important Execution Warning
+**Execution safety:** ETL tasks regenerate files in `data/processed/` and can replace existing outputs. Preserve important outputs before intentionally running a full pipeline. Keep `FOODPULSE_SNOWFLAKE_EXECUTE` unset unless a live load is specifically intended.
 
-The DAG runs the ETL pipeline into `data/processed/`. That operation regenerates processed Parquet outputs and can replace existing files. Preserve important outputs or use an isolated copy of the data before triggering a full run.
-
-Spark and Snowflake publishing are controlled by environment variables:
-
-- Set `FOODPULSE_SPARK=1` only when intentionally running the optional Spark task.
-- Set `FOODPULSE_SNOWFLAKE_LOAD=1` to enable the Snowflake publishing task.
-- Keep `FOODPULSE_SNOWFLAKE_EXECUTE` unset unless an intentional live Snowflake load is planned.
-
-The Snowflake task defaults to dry-run mode. Do not enable live execution unintentionally.
-
-## React Analytics Dashboard
+## Redesigned React Analytics Dashboard
 
 **Location:** `frontend/`, `backend/app/`
 
-The dashboard presents stored analytics through a React and TypeScript interface, interactive Plotly charts, and FastAPI endpoints.
+The redesigned frontend integrates the recommendation experience and analytical reporting into the existing FoodPulse application.
 
-### Dashboard Pages
+The stack uses React, TypeScript, Vite, Tailwind CSS, and Plotly, with FastAPI providing backend analytics.
 
-- **Overview:** Dataset counts, completed-order revenue, average order value, ratings, sentiment mix, segment distributions, churn categories, and forecast summaries.
-- **Restaurants:** Performance rankings, cuisine filters, rating-versus-volume comparisons, and restaurant details.
-- **Sentiment:** Overall sentiment distribution, monthly trends, aspect sentiment, and restaurant comparisons.
-- **Segments:** Customer segment counts and behavioral summaries.
-- **Churn:** Inactivity, risk categories, and stored heuristic scores.
-- **Recommendations and association:** Stored food and restaurant recommendations, frequent itemsets, and association rules.
-- **Forecast:** Historical demand and forward predictions for the selected restaurant and model.
-- **Customers and Insights:** Existing routes that still have placeholder or link-hub behavior.
+The production frontend build completed successfully in a previous verification. The Plotly bundle produces a chunk-size warning that can be optimized later.
 
-### Dashboard Design
+### User-Facing Food Discovery
 
-The dashboard reads existing processed Parquet data through FastAPI. It does not retrain mining models, rescore reviews, rewrite Parquet files, or open a Snowflake connection during page loads.
+The discovery interface focuses on practical food and restaurant recommendations through:
 
-PostgreSQL operational counts are reported separately from processed-dataset analytics. Empty operational tables must not be interpreted as proof that the processed analytics datasets are empty.
+- Food-item and restaurant cards.
+- Search and useful filters.
+- Personalized recommendations when customer history is available.
+- Popular choices and similar-item discovery.
+- Frequently bought together suggestions.
+- Restaurant recommendations.
+- Clear explanations for recommendations.
+- Data-backed ratings, prices, cuisine, images, and availability when available.
+- Responsive layouts, loading states, and useful empty states.
 
-### Verification
+The six recommendation sections are designed to distinguish personalized recommendations from general popularity results and complementary-item suggestions.
 
-On 19 October 2026:
+### Business Intelligence Reports
 
-- Dashboard API tests: **12 passed** across the checked analytics test files.
-- The frontend TypeScript check and Vite production build succeeded.
-- Browser checks covered the main analytics pages and a narrow mobile viewport.
-- The Plotly bundle remains relatively large, producing a Vite chunk-size warning.
+FoodPulse uses its React and Plotly stack for interactive reporting instead of requiring a separate Power BI implementation.
 
-The dashboard is implemented and locally verified. Power BI reports are not implemented.
+Reporting areas include:
+
+- Restaurant performance and customer ratings.
+- Review sentiment and satisfaction trends.
+- Customer segments and churn-risk summaries.
+- Food-item purchasing patterns and association rules.
+- Historical and forecast demand.
+- Recommendation insights and evaluation results.
+
+Charts should communicate the meaning of the data using clear labels, summaries, and explanations.
+
+The food discovery experience and business insights remain separate areas so users can browse recommendations while analysts explore detailed reports.
 
 ## PostgreSQL and FastAPI
 
-The operational backend uses FastAPI, SQLAlchemy, and PostgreSQL. It includes database models, authentication infrastructure, and API endpoints for operational entities and statistics.
+The operational backend uses FastAPI, SQLAlchemy, and PostgreSQL. It includes database models, authentication infrastructure, and endpoints for operational entities and statistics.
 
-Representative endpoints:
+Representative endpoints include:
 
 | Method | Endpoint | Purpose |
 |---|---|---|
@@ -380,34 +444,143 @@ Representative endpoints:
 | GET | `/stats/overview` | Operational database statistics |
 | GET | `/analytics/overview` | Processed analytics summary |
 | GET | `/analytics/restaurants` | Restaurant analytics |
-| GET | `/analytics/sentiment` | Stored sentiment analysis |
-| GET | `/analytics/segments` | Customer segment summaries |
+| GET | `/analytics/sentiment` | Sentiment analysis |
+| GET | `/analytics/segments` | Customer segments |
 | GET | `/analytics/churn` | Customer inactivity-risk summaries |
-| GET | `/analytics/association` | Stored association rules |
-| GET | `/analytics/forecast` | Stored demand forecasts |
+| GET | `/analytics/association` | Association rules |
+| GET | `/analytics/forecast` | Demand forecasts |
 
-The remaining analytics endpoints cover recommendations, itemsets, and restaurant-specific forecast details. See the FastAPI interactive documentation at `/docs` when the backend is running.
+Other analytics endpoints cover recommendations, itemsets, discovery sections, and restaurant-specific forecast details. Check the running application's `/docs` page for the exact available endpoints.
 
-## Setup and Local Execution
+### Operational Database Status
+
+The PostgreSQL database is configured as `foodpulse`. During the latest local verification, the `restaurants`, `customers`, `orders`, and `reviews` tables contained zero rows.
+
+Consequently, `/stats/overview` returned zero counts and null average values. This is consistent with the empty operational tables observed during that check.
+
+The processed Parquet analytics source remains populated independently. The successful `/analytics/overview` response reported:
+
+- 50 restaurants.
+- 500 customers.
+- 5,000 orders.
+- 3,000 reviews.
+- 4,405 completed orders.
+- Completed-order revenue of approximately 5,054,698.08 in the dataset's currency units.
+
+These values describe the processed analytics data, not PostgreSQL table counts.
+
+The operational loader is `python -m etl.pipelines.run_postgres_load`. It copies processed Parquet into the existing `locations`, `restaurants`, `customers`, `orders`, and `reviews` tables. Locations are loaded first because restaurants require `location_id`. The default is a dry-run that validates files and does not write. `--execute` upserts by primary key in one transaction after confirming the target is the local `foodpulse` database. It never deletes rows. It does not load users, food items, order items, or customer activity. See `etl/load/README.md`.
+
+`etl/load/seed.py` generates Faker sample data and drops all ORM tables. Do not use it to populate the operational database.
+
+The current empty PostgreSQL tables do not imply that the Parquet-backed analytics are empty. These sources must remain clearly distinguished in the application and documentation.
+
+## Project Structure
+
+```text
+FoodPulse/
+├── airflow/
+│   ├── dags/
+│   ├── Dockerfile
+│   └── requirements.txt
+├── backend/
+│   ├── app/
+│   │   ├── api/
+│   │   ├── models/
+│   │   ├── schemas/
+│   │   ├── services/
+│   │   ├── core/
+│   │   ├── db/
+│   │   └── main.py
+│   └── tests/
+├── data/
+│   ├── raw/
+│   ├── sample/
+│   └── processed/
+├── etl/
+│   ├── extract/
+│   ├── transform/
+│   ├── load/
+│   └── pipelines/
+├── frontend/
+│   ├── public/
+│   └── src/
+│   ├── components/
+│   │   ├── NearbyMap.tsx
+│   │   └── ...
+│   ├── lib/
+│   │   ├── googleMaps.ts
+│   │   ├── nearbyPlaces.ts
+│   │   ├── nearbyRecommendations.ts
+│   │   └── ...
+│   ├── pages/
+│   │   ├── NearbyPage.tsx
+│   │   └── ...
+│   ├── vite-env.d.ts
+│   ├── .env.example
+│   └── tests/
+│       ├── nearbyPlaces.test.ts
+│       ├── nearbyRecommendations.test.ts
+│       └── ...
+├── mining/
+│   ├── sentiment/
+│   ├── clustering/
+│   ├── association/
+│   ├── churn/
+│   ├── recommendation/
+│   └── forecasting/
+├── pyspark/
+│   └── jobs/
+├── tests/
+├── warehouse/
+│   ├── snowflake/
+│   ├── dimensions/
+│   ├── facts/
+│   └── sql/
+├── docker-compose.yml
+├── docker-compose.airflow.yml
+├── requirements.txt
+└── README.md
+```
+
+## Local Setup and Execution
 
 ### Prerequisites
 
-- Python 3.11 or later for the local application components.
-- Node.js and npm for the React frontend.
+- Python and a virtual environment.
+- Node.js and npm.
 - PostgreSQL for operational database functionality.
-- Docker Desktop and Docker Compose for containerized services and the optional Airflow runtime.
+- Docker Desktop and Docker Compose for Airflow and containerized services.
 - Java and PySpark for standalone Spark processing.
-- A configured Snowflake account only when a live warehouse connection is required.
+- Snowflake credentials only when a live warehouse connection is required.
 
-### 1. Configure the Environment
+### 1. Configure Environment Variables
 
-From the repository root, create the local environment file:
+From the project root, create your local `.env` using the repository's environment template if one exists:
 
 ```powershell
 Copy-Item .env.example .env
 ```
 
-Edit `.env` to configure the database connection, secret key, and any optional Snowflake settings. Never commit `.env` or credentials.
+If the template does not exist, inspect the configuration code and create the required variables manually.
+
+Configure the database connection, application secrets, and optional integrations according to the current configuration.
+
+Never commit `.env` files, database passwords, API keys, or other credentials.
+
+### Google Maps Demo Key
+
+The Nearby Restaurants feature reads the following Vite environment variable from `frontend/.env`:
+
+```dotenv
+VITE_GOOGLE_MAPS_API_KEY=YOUR_DEMO_KEY
+```
+
+Replace the placeholder with your own Demo Key. Keep the actual key out of GitHub. The variable name and an empty placeholder belong in `frontend/.env.example`.
+
+Vite variables prefixed with `VITE_` are exposed to browser code. Do not store backend passwords or other private server credentials in these variables.
+
+The Demo Key has supported-feature and quota limits. The current implementation does not automatically switch to a billable API when a feature is unavailable or a quota is reached.
 
 ### 2. Install Python Dependencies
 
@@ -415,44 +588,29 @@ Edit `.env` to configure the database connection, secret key, and any optional S
 python -m venv .venv
 .\.venv\Scripts\Activate.ps1
 python -m pip install -r requirements.txt
-python -m pip install -r backend/requirements.txt
 ```
 
-The root requirements file contains the data processing and mining dependencies. The backend requirements file contains the API dependencies.
+Install additional dependency files only if they exist in the current checkout and have not already been installed.
 
-### 3. Start PostgreSQL and the Backend
+### 3. Start the Backend
 
-Use the repository's existing Docker Compose configuration for the operational database and services:
+From the repository root, use the existing startup script:
 
 ```powershell
-docker compose up --build -d
+.\scripts\run-backend.ps1
 ```
 
-Check the current Compose configuration if you want to start only a particular service. Ensure the database URL in `.env` matches the database's actual host port.
+The expected backend address is:
 
-To start the backend locally from the repository root:
+`http://localhost:8000`
 
-```powershell
-.\.venv\Scripts\python.exe -m uvicorn app.main:app --reload --host 127.0.0.1 --port 8000 --app-dir backend
-```
+Open `http://localhost:8000/docs` to inspect the available API endpoints.
 
-Open [http://127.0.0.1:8000/docs](http://127.0.0.1:8000/docs) to inspect the API.
+If the startup script is unavailable, inspect the current backend entry point before selecting the appropriate Uvicorn command.
 
-### 4. Generate Processed Analytics
+### 4. Start the Frontend
 
-The sample CSV files are already part of the project's data workflow. The transform command reads the existing files and writes processed outputs:
-
-```powershell
-.\.venv\Scripts\python.exe -m etl.pipelines.run_transform --reference-date 2026-10-11
-```
-
-This command writes into `data/processed/` by default and can replace existing processed outputs.
-
-**Do not run `scripts/run-etl.ps1` when your goal is merely to regenerate processed Parquet.** That script runs the CSV seeding workflow and can overwrite `data/sample/`.
-
-### 5. Run the React Dashboard
-
-In a second terminal:
+Open a second terminal:
 
 ```powershell
 cd frontend
@@ -460,122 +618,203 @@ npm install
 npm run dev
 ```
 
-Open [http://localhost:5173](http://localhost:5173).
+Open the local development URL printed by Vite, usually `http://localhost:5173`.
 
-The dashboard requires the backend and the appropriate processed Parquet outputs to be available.
+### 5. Build the Frontend
 
-## Running Individual Modules
-
-Run commands from the repository root.
+From the `frontend` directory:
 
 ```powershell
-# VADER sentiment analysis
-.\.venv\Scripts\python.exe -m mining.sentiment.run_analysis
-
-# Customer segmentation
-.\.venv\Scripts\python.exe -m mining.clustering.run_segmentation --seed 42
-
-# Association rule mining
-.\.venv\Scripts\python.exe -m mining.association.run_mining --min-support 0.003 --min-confidence 0.3
-
-# Inactivity / churn-risk analysis
-.\.venv\Scripts\python.exe -m mining.churn.run_analysis --reference-date 2026-10-11 --inactivity-days 90 --at-risk-days 45
-
-# Personalized recommendations
-.\.venv\Scripts\python.exe -m mining.recommendation.run_recommendations --reference-date 2026-10-11
-
-# Demand forecasting
-.\.venv\Scripts\python.exe -m mining.forecasting.run_forecast --reference-date 2026-10-11 --horizon 7
-
-# Snowflake dry run
-.\.venv\Scripts\python.exe -m warehouse.snowflake.run_load --dry-run
-```
-
-The mining modules use processed Parquet inputs and write their analytical outputs to the processed-data directory unless configured otherwise.
-
-### Optional Transformer Sentiment
-
-Set `SENTIMENT_MODEL=transformer` in the environment to use the transformer backend. Leave it unset or set it to `vader` for the default VADER backend.
-
-Transformer inference is optional and can require additional dependencies and model downloads. The dashboard does not run transformer inference automatically.
-
-### Optional PySpark Job
-
-The standalone Spark job writes to a separate output directory:
-
-```powershell
-.\.venv\Scripts\python.exe pyspark\jobs\feature_aggregations.py --input-dir data\processed --output-dir data\processed\spark_features --reference-date 2026-10-11
-```
-
-This preserves the original Pandas ETL files.
-
-## Testing and Verification
-
-The following commands cover the main implemented modules.
-
-### Data Mining and ETL
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest tests\test_transform.py tests\test_sentiment.py tests\test_clustering.py tests\test_association.py tests\test_churn.py tests\test_recommendation.py tests\test_forecasting.py -q
-```
-
-The documented run reported **67 passed** on 11 October 2026.
-
-### Snowflake Loader
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest tests\test_snowflake_load.py -q
-```
-
-The documented run reported **21 passed**. These tests use mocked connections and temporary data, not a live Snowflake account.
-
-### PySpark
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest tests\test_spark_features.py -q
-```
-
-The documented run reported **4 passed**.
-
-### Airflow DAG
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest tests\test_airflow_dag.py -q
-```
-
-The documented local result was **8 passed, 1 skipped**. The skip was due to Airflow not being installed in the host project's Python interpreter. Docker-based runtime checks are separate from this test result.
-
-### Dashboard
-
-```powershell
-.\.venv\Scripts\python.exe -m pytest backend\tests\test_dashboard_metrics.py backend\tests\test_analytics.py -q
-```
-
-The documented run reported **12 passed**.
-
-For the frontend production build:
-
-```powershell
-cd frontend
 npm run build
 ```
 
-The documented build completed successfully. Test counts above describe specific recorded runs; they are not a guarantee that every test will pass after subsequent changes.
+A successful build verifies TypeScript compilation and production bundling. It does not independently verify that every backend endpoint or page works correctly.
 
-A later full-project test run reported **123 passed, 1 skipped**. Test results may change as the project evolves.
+### 6. Run Tests
 
-## Data Safety and Configuration
+From the repository root:
 
-- Keep `.env` and all database credentials out of version control.
-- Do not commit passwords, access tokens, or sensitive customer data.
-- `data/processed/` is generated data and is gitignored.
-- The ETL pipeline can replace processed files. Preserve or copy important outputs before a full rerun.
-- The Airflow DAG invokes existing processing commands and is not a separate implementation of each algorithm.
-- Keep `FOODPULSE_SPARK` disabled unless the optional Spark task is deliberately being tested.
-- `FOODPULSE_SNOWFLAKE_LOAD` controls whether the Snowflake publishing task runs in Airflow.
-- Keep `FOODPULSE_SNOWFLAKE_EXECUTE` unset unless an intentional live Snowflake load is planned.
-- Snowflake DDL and individual table transactions are not one atomic transaction across the entire 16-table load.
-- The local dashboard uses processed Parquet data; PostgreSQL statistics are displayed separately.
+```powershell
+.\.venv\Scripts\python.exe -m pytest -q
+```
+
+A previous full-suite verification reported **123 passed, 1 skipped**. Rerun the tests after subsequent changes to establish the current result.
+
+### 7. Run Individual Mining Modules
+
+Run commands from the repository root after the required processed inputs are available.
+
+**Transform and feature engineering**
+
+```powershell
+.\.venv\Scripts\python.exe -m etl.pipelines.run_transform --reference-date 2026-10-11
+```
+
+**Sentiment analysis**
+
+```powershell
+.\.venv\Scripts\python.exe -m mining.sentiment.run_analysis
+```
+
+**Customer segmentation**
+
+```powershell
+.\.venv\Scripts\python.exe -m mining.clustering.run_segmentation --seed 42
+```
+
+**Association rule mining**
+
+```powershell
+.\.venv\Scripts\python.exe -m mining.association.run_mining --min-support 0.003 --min-confidence 0.3
+```
+
+**Churn-risk analysis**
+
+```powershell
+.\.venv\Scripts\python.exe -m mining.churn.run_analysis --reference-date 2026-10-11 --inactivity-days 90 --at-risk-days 45
+```
+
+**Recommendations**
+
+```powershell
+.\.venv\Scripts\python.exe -m mining.recommendation.run_recommendations --reference-date 2026-10-11
+```
+
+**Demand forecasting**
+
+```powershell
+.\.venv\Scripts\python.exe -m mining.forecasting.run_forecast --reference-date 2026-10-11 --horizon 7
+```
+
+**Snowflake dry run**
+
+```powershell
+.\.venv\Scripts\python.exe -m warehouse.snowflake.run_load --dry-run
+.\.venv\Scripts\python.exe -m warehouse.snowflake.run_star --dry-run
+```
+
+**PostgreSQL operational load (dry-run default)**
+
+```powershell
+.\.venv\Scripts\python.exe -m etl.pipelines.run_postgres_load
+.\.venv\Scripts\python.exe -m etl.pipelines.run_postgres_load --dry-run
+```
+
+Live PostgreSQL writes require an explicit flag and a verified local `foodpulse` database:
+
+```powershell
+.\.venv\Scripts\python.exe -m etl.pipelines.run_postgres_load --execute
+```
+
+Do not run `--execute` until you have reviewed the dry-run summary. The command never deletes existing rows. After a live load, compare `GET /stats/overview` with the loader summary; `/analytics/overview` still reads Parquet.
+
+These commands can generate or replace processed outputs. Review the output paths and preserve important files before rerunning a pipeline.
+
+### Optional Transformer Sentiment
+
+Set `SENTIMENT_MODEL=transformer` to select transformer inference. Leave it unset or set it to `vader` to use the default VADER backend.
+
+Transformer inference may require additional dependencies and model downloads. The dashboard does not run transformer inference automatically.
+
+### Optional Spark Processing
+
+The standalone Spark job writes to `data/processed/spark_features/` by default and preserves the Pandas ETL outputs.
+
+Enable the Airflow Spark task only when deliberately testing it in a configured Spark environment.
+
+## Testing and Verification
+
+Previously recorded verification results include:
+
+| Area | Recorded result |
+|---|---|
+| ETL and data-mining modules | 67 passed |
+| Snowflake loader tests | 21 passed |
+| Spark feature tests | 4 passed |
+| Airflow DAG tests | 8 passed, 1 skipped |
+| Dashboard API tests | 12 passed |
+| Full test suite | 123 passed, 1 skipped |
+| Frontend production build | Successful |
+| Discovery and analytics tests | Previously passed targeted test runs |
+| Discovery-related frontend build | Previously successful |
+
+These are historical results, not a guarantee that all tests still pass after later changes. Rerun the relevant tests when modifying a module.
+
+## Data Safety and Security
+
+- Keep `.env`, credentials, database passwords, and access tokens out of version control.
+- Do not commit generated datasets, temporary validation outputs, or local virtual environments.
+- Review ETL and Airflow tasks before rerunning them because processed files may be replaced.
+- Keep Spark and live Snowflake execution disabled unless explicitly required.
+- Use Snowflake dry-run mode to inspect planned operations before a live load.
+- Do not modify production data or run destructive database operations as part of ordinary testing.
+- Verify the intended local `foodpulse` database with a PostgreSQL dry-run before `--execute`. The loader refuses unexpected hosts and database names and never deletes rows.
+- Keep operational database statistics separate from processed Parquet analytics.
+
+## Application Routes
+
+The React frontend provides dedicated pages for food discovery, restaurant discovery, personalized recommendations, and business analytics.
+
+| Route | Purpose |
+|---|---|
+| `/` | FoodPulse application landing page |
+| `/app/nearby` | Discover nearby restaurants using Google Maps Places and a user-selected location |
+| `/app/recommendations` | Explore food-item and restaurant recommendations using available sample customer data |
+| `/app/restaurants` | Browse restaurant information and discovery features |
+| `/app/sentiment` | Explore review sentiment and satisfaction insights |
+| `/app/segments` | View customer segmentation results |
+| `/app/churn` | Explore customer inactivity and churn-risk analysis |
+| `/app/association` | Inspect food-item association rules and complementary-item patterns |
+| `/app/forecast` | View historical demand and demand forecasts |
+| `/app` | Access the main application and its analytics navigation |
+
+**Route note:** The application may use additional nested routes or query parameters. Check the current frontend router for the exact route configuration. The recommendations page can accept a customer identifier through the `customer` query parameter when navigating from Nearby Restaurants.
+
+## Limitations and Known Issues
+
+### Nearby Restaurant Discovery
+
+- Nearby restaurant search uses Google Maps JavaScript API and Places functionality, subject to the configured API key, available fields, and usage quotas.
+- Browser geolocation requires user permission. Users can alternatively search using a destination such as a city, address, college, or landmark.
+- The Google Maps Demo Key is intended for prototyping. Live search behavior and quota-related states still require end-to-end verification.
+- Restaurant photos and reviews are not guaranteed to be available through the current integration.
+- Google Places restaurants are not automatically matched to FoodPulse's sample restaurant records. Google Place IDs, names, addresses, and coordinates are not used to establish a verified relationship with the sample recommendation datasets.
+- Recommendations reached from Nearby Restaurants use a selected sample FoodPulse customer and, where the cuisine mapping is unambiguous, a cuisine preference. They are not verified dish-level recommendations from the selected Google restaurant.
+- The Google Maps API key must remain in the local `frontend/.env` file and must never be committed to version control. Values prefixed with `VITE_` are exposed to the browser, so the key must not contain server-side secrets.
+
+### Recommendation and Analytics Data
+
+- Recommendation scores are ranking signals, not probabilities that a customer will purchase an item.
+- Personalization depends on the customer history available in the processed datasets. Sample customers should not be treated as authenticated real users.
+- Restaurant-level review aggregates do not represent verified ratings for individual food items.
+- Missing images or food attributes should use an appropriate fallback rather than display invented information.
+- Association rules describe co-occurrence and do not establish causation.
+- Forecasts are estimates and may be less reliable for sparse or irregular demand.
+- The PostgreSQL operational database and processed Parquet analytics are separate data sources. Empty PostgreSQL tables do not imply that the processed analytics datasets are empty.
+
+### Remaining Validation and UI Work
+
+- Complete live end-to-end testing of destination search, geolocation, Google Places search, map markers, list selection, and directions links.
+- Verify the missing-API-key, no-results, loading, and quota-error states without exposing credentials.
+- The Customers page remains a directory placeholder rather than a fully implemented customer analytics experience.
+- The forecast page may briefly display an empty-state message while data is loading.
+- The Nearby page's permission-denied message may appear in more than one panel.
+- The frontend production build reports an existing Plotly bundle-size warning that can be optimized separately.
+
+### Verification Status
+
+The latest recorded automated checks completed successfully:
+
+| Check | Result |
+|---|---|
+| Frontend lint | Passed |
+| Frontend tests | 48 passed |
+| Frontend production build | Passed, with an existing Plotly bundle-size warning |
+| Backend tests | 164 passed, 1 skipped |
+| Skipped test | Airflow DAG test; Apache Airflow was not installed in the project virtual environment |
+| Nearby live Google Maps requests | Not performed during the recorded verification |
+
+These results describe the recorded verification run and should be refreshed after further code changes. A successful automated test run does not replace live end-to-end testing of Google Maps and Places functionality.
 
 ## Current Project Status
 
@@ -586,27 +825,34 @@ A later full-project test run reported **123 passed, 1 skipped**. Test results m
 | Optional transformer sentiment | Smoke-tested; full accuracy evaluation pending |
 | Customer clustering | Implemented and tested |
 | Apriori association rules | Implemented and tested |
-| Rule-based inactivity / churn-risk analysis | Implemented and tested |
-| Personalized recommendations | Implemented and tested |
+| Rule-based churn-risk analysis | Implemented and tested |
+| Recommendation foundation | Implemented; recommendation quality can be improved |
+| Food and restaurant discovery cards | Integrated; verify the latest end-to-end behavior |
+| Recommendation explanations and discovery sections | Implemented; continue validating with available data |
 | Demand forecasting | Implemented and tested |
 | PySpark feature aggregation | Implemented and locally verified; optional in Airflow |
-| Snowflake analytical loader | Implemented; prior live load completed |
-| FastAPI operational endpoints | Implemented |
-| React / Plotly analytics dashboard | Implemented and locally verified |
-| Airflow DAG and Docker runtime | Manually executed successfully; Snowflake task verified in dry-run mode |
-| Dimensional Snowflake star schema | Pending |
-| Power BI reports | Pending |
+| Snowflake analytical loader | Implemented; dry-run workflow verified and a prior live account test completed |
+| Snowflake dimensional star schema | Implemented; unit-tested dry-run transform; live `--execute` still required |
+| FastAPI backend | Implemented |
+| React analytics frontend | Integrated; production build previously successful |
+| Interactive Plotly dashboard | Implemented; further reporting improvements possible |
+| Airflow orchestration | Manually executed successfully; live execution must be verified separately where required |
+| PostgreSQL operational tables | Currently empty in the latest local verification; populate only with `--execute` after review |
+| PostgreSQL data-loading workflow | Implemented; dry-run default; unit-tested without writing to PostgreSQL |
+| Final end-to-end regression validation | Required |
 
-## Future Enhancements
+## Next Development Priorities
 
-1. Implement warehouse dimensions, fact tables, and the corresponding dimensional SQL model.
-2. Improve and evaluate transformer sentiment using a representative labeled dataset.
-3. Evaluate recommendation quality on more suitable holdout data and investigate the low observed hit rates.
-4. Improve forecast evaluation for sparse restaurant and food-item demand, and consider calibrated uncertainty estimates.
-5. Add Power BI reports if required by the project scope.
-6. Improve dashboard bundle performance and expand automated integration testing.
-7. Perform a controlled live Snowflake load when required, with valid credentials, explicit execution settings, and post-load verification.
+1. Continue improving and validating food-item and restaurant recommendations.
+2. Run a live Snowflake star-schema load with `--execute` and `warehouse/snowflake/sql/star_validate.sql` when an account is available.
+3. Verify all frontend pages, API integrations, filters, and empty states.
+4. Review the PostgreSQL dry-run summary, then run `python -m etl.pipelines.run_postgres_load --execute` when operational population is scheduled.
+5. Evaluate recommendation quality using appropriate holdout data and meaningful metrics.
+6. Rerun the full test suite and validate the Airflow workflow after changes.
+7. Document the final architecture, data flow, supported functionality, and limitations.
 
 ## Project Goal
 
-FoodPulse demonstrates an end-to-end restaurant analytics workflow that connects data preparation, data mining, machine learning, workflow orchestration, analytical warehouse publishing, API development, and interactive visualization. It is designed as an extensible academic data mining project with a practical, resume-oriented engineering structure.
+FoodPulse connects data mining with practical decisions. It combines restaurant analytics, customer behavior analysis, machine learning, warehouse integration, workflow orchestration, and an accessible web interface.
+
+The goal is to build a platform that does not merely display data, but helps users discover relevant food and restaurants while enabling analysts to understand customer behavior, restaurant performance, and demand.

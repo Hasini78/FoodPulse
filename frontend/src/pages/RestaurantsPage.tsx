@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 
 import { DataTable } from '../components/DataTable'
 import { SelectField } from '../components/Field'
@@ -7,6 +8,7 @@ import { Panel } from '../components/Panel'
 import { PlotlyChart } from '../components/PlotlyChart'
 import { getRestaurantDetail, getRestaurants } from '../lib/analytics'
 import { formatNumber } from '../lib/format'
+import { RESTAURANT_SOURCE, ratingSourceCaption, sourceSentence } from '../lib/metricExplanations'
 import { useAsync } from '../lib/useAsync'
 
 export function RestaurantsPage() {
@@ -23,7 +25,17 @@ export function RestaurantsPage() {
     <div className="space-y-6">
       <PageHeader
         title="Restaurant performance"
-        description="Completed-order counts and spend use total_amount from orders.parquet. Average rating is the stored feature-table value. Sentiment score on that file is not shown because the ETL leaves it null."
+        description={
+          <>
+            Completed-order counts and spend use total_amount from orders.parquet. {ratingSourceCaption()} Sentiment score on
+            restaurant_features.parquet is not shown because the ETL leaves it null. This is the FoodPulse sample restaurant
+            dataset, not live Google Places.{' '}
+            <Link to="/app/nearby" className="font-semibold text-brand-strong hover:underline">
+              Nearby restaurants
+            </Link>{' '}
+            looks up real-world places on Google Maps instead.
+          </>
+        }
         actions={
           <>
             <SelectField label="Sort" value={sort} onChange={setSort} options={[
@@ -39,15 +51,15 @@ export function RestaurantsPage() {
       />
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <Panel title="Spend comparison" description="Top restaurants in the current filter, by completed-order spend." status={state.status} error={state.error} empty={!chart.length}>
+        <Panel title="Spend comparison" description="Top restaurants in the current filter, by completed-order spend." status={state.status} error={state.error} empty={!chart.length} source={sourceSentence(RESTAURANT_SOURCE)}>
           <PlotlyChart title="Completed-order spend" xTitle="Spend" height={360} data={[{ type: 'bar', orientation: 'h', y: chart.map((row) => String(row.name)), x: chart.map((row) => Number(row.total_spend ?? 0)), name: 'Spend', marker: { color: '#F26B1D' } }]} />
         </Panel>
-        <Panel title="Rating and volume" description="Each point is a restaurant. Horizontal position is completed orders. Vertical position is the stored average rating." status={state.status} error={state.error} empty={!items.length}>
-          <PlotlyChart title="Orders and average rating" xTitle="Completed orders" yTitle="Average rating" height={360} data={[{ type: 'scatter', mode: 'markers', x: items.map((row) => Number(row.completed_orders ?? 0)), y: items.map((row) => row.avg_rating), text: items.map((row) => String(row.name ?? '')), hovertemplate: '%{text}<br>%{x} orders<br>Rating %{y}<extra></extra>', name: 'Restaurants', marker: { size: 12, color: '#3B6CF6', opacity: 0.85, line: { color: '#fff', width: 2 } } }]} />
+        <Panel title="Rating and volume" description={`Each point is a restaurant. Horizontal position is completed orders. Vertical position is the restaurant sample-review average. ${ratingSourceCaption()}`} status={state.status} error={state.error} empty={!items.length} source={sourceSentence(RESTAURANT_SOURCE)}>
+          <PlotlyChart title="Orders and restaurant sample avg" xTitle="Completed orders" yTitle="Restaurant sample avg" height={360} data={[{ type: 'scatter', mode: 'markers', x: items.map((row) => Number(row.completed_orders ?? 0)), y: items.map((row) => row.avg_rating), text: items.map((row) => String(row.name ?? '')), hovertemplate: '%{text}<br>%{x} orders<br>Sample avg %{y}<extra></extra>', name: 'Restaurants', marker: { size: 12, color: '#3B6CF6', opacity: 0.85, line: { color: '#fff', width: 2 } } }]} />
         </Panel>
       </div>
 
-      <Panel title="Restaurants" status={state.status} error={state.error} empty={!items.length}>
+      <Panel title="Restaurants" status={state.status} error={state.error} empty={!items.length} source={sourceSentence(RESTAURANT_SOURCE)}>
         <DataTable
           caption="Restaurants"
           rows={items}
@@ -57,14 +69,14 @@ export function RestaurantsPage() {
             { key: 'orders', header: 'Completed orders', align: 'right', render: (row) => formatNumber(row.completed_orders) },
             { key: 'spend', header: 'Spend', align: 'right', render: (row) => formatNumber(row.total_spend, 2) },
             { key: 'aov', header: 'Avg order value', align: 'right', render: (row) => formatNumber(row.avg_order_value, 2) },
-            { key: 'rating', header: 'Avg rating', align: 'right', render: (row) => formatNumber(row.avg_rating, 2) },
+            { key: 'rating', header: 'Restaurant sample avg', align: 'right', render: (row) => formatNumber(row.avg_rating, 2) },
           ]}
         />
       </Panel>
 
       <Panel
         title="Restaurant detail"
-        description="Completed-order metrics plus stored sentiment counts for the selected restaurant."
+        description="Completed-order metrics plus stored sample-review sentiment counts for the selected restaurant. Sentiment does not prove satisfaction or live public opinion."
         status={selectedId ? detail.status : 'ready'}
         error={detail.error}
         empty={!selectedId || !detail.data?.restaurant}
@@ -78,8 +90,8 @@ export function RestaurantsPage() {
             ['Restaurant', String(detail.data?.restaurant?.name ?? 'Unavailable')],
             ['Completed orders', formatNumber(detail.data?.restaurant?.completed_orders)],
             ['Spend', formatNumber(detail.data?.restaurant?.total_spend, 2)],
-            ['Average rating', formatNumber(detail.data?.restaurant?.avg_rating, 2)],
-            ['Positive / negative reviews', `${formatNumber(detail.data?.sentiment?.positive_count)} / ${formatNumber(detail.data?.sentiment?.negative_count)}`],
+            ['Restaurant sample avg', formatNumber(detail.data?.restaurant?.avg_rating, 2)],
+            ['Positive / negative sample reviews', `${formatNumber(detail.data?.sentiment?.positive_count)} / ${formatNumber(detail.data?.sentiment?.negative_count)}`],
           ].map(([label, value]) => (
             <div key={label} className="rounded-xl bg-canvas px-4 py-3">
               <p className="text-xs font-medium text-ink-3">{label}</p>

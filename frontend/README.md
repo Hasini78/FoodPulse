@@ -18,6 +18,7 @@ npm run build
 | `/login` | Sign in |
 | `/app` | Dashboard overview |
 | `/app/restaurants`, `/sentiment`, `/segments`, `/churn`, `/recommendations`, `/forecast`, `/customers`, `/insights` | Analytics pages |
+| `/app/nearby` | Nearby restaurants (Google Maps Demo Key; script loads only on this page) |
 
 ## Hero photo
 
@@ -27,6 +28,10 @@ The landing and sign-in pages draw a plated-dish backdrop in SVG. To use a real 
 
 The dashboard is open by default. To require sign-in, set `VITE_REQUIRE_AUTH=true`.
 `src/lib/auth.ts` posts `username` and `password` (form-encoded) to `POST /auth/login` and expects `{ "access_token": "..." }`. Edit that one function if your backend differs. The token is sent as a Bearer header on every API call.
+
+## Nearby restaurants
+
+`/app/nearby` reads `VITE_GOOGLE_MAPS_API_KEY` from `frontend/.env` (see `frontend/.env.example` for the variable name only). The Maps JavaScript API script loads on that page after you search, not globally. Use a Maps Demo Key for prototyping; do not commit a real key.
 
 ## Design tokens
 

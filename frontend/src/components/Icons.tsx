@@ -4,6 +4,7 @@ export type IconName =
   | 'dashboard' | 'store' | 'message' | 'users' | 'alert' | 'sparkles' | 'trending' | 'user'
   | 'lightbulb' | 'search' | 'menu' | 'close' | 'arrow' | 'utensils' | 'database' | 'receipt'
   | 'wallet' | 'star' | 'calendar' | 'login' | 'logout' | 'inbox' | 'bag' | 'basket' | 'home'
+  | 'mapPin' | 'directions'
 
 const paths: Record<IconName, ReactNode> = {
   dashboard: (<><rect width="7" height="9" x="3" y="3" rx="1.5" /><rect width="7" height="5" x="14" y="3" rx="1.5" /><rect width="7" height="9" x="14" y="12" rx="1.5" /><rect width="7" height="5" x="3" y="16" rx="1.5" /></>),
@@ -31,6 +32,8 @@ const paths: Record<IconName, ReactNode> = {
   bag: (<><path d="M6 2 3 6v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2V6l-3-4z" /><path d="M3 6h18" /><path d="M16 10a4 4 0 0 1-8 0" /></>),
   basket: (<><path d="m5 11 4-7" /><path d="m19 11-4-7" /><path d="M2 11h20" /><path d="m3.5 11 1.6 7.4a2 2 0 0 0 2 1.6h9.8a2 2 0 0 0 2-1.6l1.7-7.4" /><path d="m9 11 1 9M15 11l-1 9" /></>),
   home: (<><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" /></>),
+  mapPin: (<><path d="M20 10c0 6-8 12-8 12s-8-6-8-12a8 8 0 0 1 16 0Z" /><circle cx="12" cy="10" r="3" /></>),
+  directions: <polygon points="3 11 22 2 13 21 11 13 3 11" />,
 }
 
 type IconProps = { name: IconName; size?: number } & Omit<SVGProps<SVGSVGElement>, 'name'>

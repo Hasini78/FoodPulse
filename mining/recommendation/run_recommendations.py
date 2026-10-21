@@ -23,13 +23,15 @@ import matplotlib.pyplot as plt
 import pandas as pd
 
 from mining.recommendation.candidates import build_context, load_association_rules, parse_cutoff
-from mining.recommendation.evaluate import evaluate_holdout
+from mining.recommendation.evaluate import compare_holdout, evaluate_holdout
 from mining.recommendation.ranker import (
+    DEFAULT_VARIANT,
     FOOD_COLD_WEIGHTS,
     FOOD_HISTORY_WEIGHTS,
     LIMITED_HISTORY_ORDERS,
     RESTAURANT_COLD_WEIGHTS,
     RESTAURANT_HISTORY_WEIGHTS,
+    VARIANTS,
     recommend,
 )
 
@@ -55,6 +57,8 @@ def run_recommendations(
     food_k: int,
     restaurant_k: int,
     limited_history_orders: int,
+    variant: str = DEFAULT_VARIANT,
+    compare: bool = False,
 ) -> dict[str, object]:
     """Build recommendations, evaluate a temporal holdout, and write artifacts."""
     for path in (customers_path, orders_path, order_items_path, foods_path, restaurants_path, reviews_path, sentiment_path):
@@ -72,10 +76,25 @@ def run_recommendations(
     sentiment = pd.read_parquet(sentiment_path)
     rules, rule_warnings = load_association_rules(rules_path, foods)
     context = build_context(customers, orders, order_items, foods, restaurants, reviews, sentiment, parsed)
-    food, restaurant = recommend(context, rules, food_k, restaurant_k, limited_history_orders)
+    food, restaurant = recommend(context, rules, food_k, restaurant_k, limited_history_orders, variant=variant)
     evaluation = evaluate_holdout(
-        customers, orders, order_items, foods, restaurants, reviews, sentiment, parsed, food_k, restaurant_k
+        customers,
+        orders,
+        order_items,
+        foods,
+        restaurants,
+        reviews,
+        sentiment,
+        parsed,
+        food_k,
+        restaurant_k,
+        variant=variant,
     )
+    comparison = None
+    if compare:
+        comparison = compare_holdout(
+            customers, orders, order_items, foods, restaurants, reviews, sentiment, parsed, food_k, restaurant_k
+        )
     output_dir.mkdir(parents=True, exist_ok=True)
     artifacts_dir.mkdir(parents=True, exist_ok=True)
     food_path = output_dir / "food_recommendations.parquet"
@@ -118,10 +137,11 @@ def run_recommendations(
             "food_k": food_k,
             "restaurant_k": restaurant_k,
             "limited_history_orders": limited_history_orders,
-            "food_history_weights": FOOD_HISTORY_WEIGHTS,
-            "food_cold_weights": FOOD_COLD_WEIGHTS,
-            "restaurant_history_weights": RESTAURANT_HISTORY_WEIGHTS,
-            "restaurant_cold_weights": RESTAURANT_COLD_WEIGHTS,
+            "variant": variant,
+            "food_history_weights": VARIANTS[variant]["food_history"] if variant in VARIANTS else FOOD_HISTORY_WEIGHTS,
+            "food_cold_weights": VARIANTS[variant]["food_cold"] if variant in VARIANTS else FOOD_COLD_WEIGHTS,
+            "restaurant_history_weights": VARIANTS[variant]["restaurant_history"] if variant in VARIANTS else RESTAURANT_HISTORY_WEIGHTS,
+            "restaurant_cold_weights": VARIANTS[variant]["restaurant_cold"] if variant in VARIANTS else RESTAURANT_COLD_WEIGHTS,
             "blend": "Customers with no completed orders use the cold-start weights. Others use min(1, completed_orders / (limited_history_orders + 1)) times the history score plus the rest from the cold-start score.",
             "purchased_items": "An item bought once is not recommended. An item bought on two or more completed orders can be recommended as a reorder.",
             "tie_break": "Higher score, then higher association strength or quality, then lower id.",
@@ -129,12 +149,14 @@ def run_recommendations(
         },
         "warnings": [*rule_warnings, *context["warnings"]],
         "evaluation": evaluation,
+        "comparison": comparison,
         "empty_result": food.empty and restaurant.empty,
         "limitations": [
             "The score ranks candidates. It is not a probability of purchase and does not measure satisfaction or sales.",
             "Association describes co-purchase, not a cause.",
             "Global association rules can include the same orders used as a future holdout, so the holdout turns that signal off.",
-            "Popularity is a small weight and is not used as the explanation when another signal is present.",
+            "Restaurant-level sample-review averages are not dish ratings. The improved food ranker keeps that quality weight small.",
+            "Popularity is completed-order volume up to the cutoff. It is not a live public ranking.",
             "Names, emails, and phone numbers are not recommendation fields.",
         ],
         "artifacts": {
@@ -169,6 +191,8 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--food-k", type=int, default=5)
     parser.add_argument("--restaurant-k", type=int, default=3)
     parser.add_argument("--limited-history-orders", type=int, default=LIMITED_HISTORY_ORDERS)
+    parser.add_argument("--variant", choices=sorted(VARIANTS), default=DEFAULT_VARIANT)
+    parser.add_argument("--compare", action="store_true", help="Evaluate baseline and improved on the same holdout split.")
     args = parser.parse_args(argv)
     try:
         run_recommendations(
@@ -186,6 +210,8 @@ def main(argv: list[str] | None = None) -> int:
             args.food_k,
             args.restaurant_k,
             args.limited_history_orders,
+            args.variant,
+            args.compare,
         )
     except (ValueError, FileNotFoundError, RuntimeError) as exc:
         logger.error("%s", exc)

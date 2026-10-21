@@ -5,17 +5,17 @@ import type { IconName } from '../components/Icons'
 import { PageHeader } from '../components/PageHeader'
 
 const links: Array<{ to: string; label: string; text: string; icon: IconName }> = [
-  { to: '/app/sentiment', label: 'Sentiment', text: 'How guests feel overall and about food, service, ambience and price.', icon: 'message' },
-  { to: '/app/segments', label: 'Segments', text: 'Customer groups by order frequency, spend and recency.', icon: 'users' },
-  { to: '/app/churn', label: 'Churn risk', text: 'Customers who look inactive, with the stored reasons.', icon: 'alert' },
-  { to: '/app/recommendations', label: 'Recommendations and rules', text: 'Suggested dishes and restaurants, and dishes ordered together.', icon: 'sparkles' },
-  { to: '/app/forecast', label: 'Demand forecast', text: 'Expected orders next to what actually happened.', icon: 'trending' },
+  { to: '/app/sentiment', label: 'Sentiment', text: 'Stored VADER labels on sample reviews. Scores are not live public opinion.', icon: 'message' },
+  { to: '/app/segments', label: 'Segments', text: 'Data-derived groups from stored recency, frequency, and spend medians.', icon: 'users' },
+  { to: '/app/churn', label: 'Churn risk', text: 'Rule-based inactivity scores. A high score is not a probability of leaving.', icon: 'alert' },
+  { to: '/app/recommendations', label: 'Recommendations and rules', text: 'Stored ranks plus association rules. Co-purchase is not causation.', icon: 'sparkles' },
+  { to: '/app/forecast', label: 'Demand forecast', text: 'Stored historical demand beside forward model estimates, not guaranteed orders.', icon: 'trending' },
 ]
 
 export function InsightsPage() {
   return (
     <div className="space-y-6">
-      <PageHeader title="Insights" description="Each section reads an existing processed output. Nothing on these pages retrains a model or opens Snowflake." />
+      <PageHeader title="Insights" description="Each section reads an existing processed Parquet output. Sample customers and reviews are labeled as such. Nothing on these pages retrains a model or opens Snowflake." />
       <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
         {links.map((item) => (
           <Link key={item.to} to={item.to} className="group rounded-card border border-line bg-card p-5 shadow-card transition-colors hover:border-brand/50">

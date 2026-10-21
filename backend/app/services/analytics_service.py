@@ -8,6 +8,7 @@ trimming, equals ``completed``.
 
 from __future__ import annotations
 
+import json
 import math
 import os
 from pathlib import Path
@@ -32,7 +33,8 @@ CHURN_NOTICE = (
 )
 SEGMENT_NOTICE = (
     "Segment labels are the names already stored by the clustering job. "
-    "They describe measured medians. They are not a new interpretation."
+    "They describe measured medians from the project customer file. "
+    "They are not verified real-world identities or traits."
 )
 RECOMMENDATION_NOTICE = (
     "Scores are the ranking scores already stored by the recommender. "
@@ -42,6 +44,18 @@ FORECAST_NOTICE = (
     "Historical values are actual demand from demand_forecast_history.parquet. "
     "Predicted values are the stored forward forecast for the selected model. "
     "This request does not train a model. Holdout error is copied from the forecast file."
+)
+ASSOCIATION_NOTICE = (
+    "Support is how often the item combination appears in completed-order baskets. "
+    "Confidence is how often the consequent appears when the antecedent appears. "
+    "Lift is how frequently the consequent occurs relative to its baseline frequency. "
+    "Association is co-occurrence, not causation."
+)
+SENTIMENT_NOTICE = (
+    "These rows score sample review text already stored in review_sentiment.parquet. "
+    "overall_score is the stored VADER compound score, typically between -1 and 1. "
+    "The page does not rescore reviews, prove customer satisfaction, or reflect live public opinion. "
+    "Star ratings are restaurant-level sample reviews, not dish ratings."
 )
 
 
@@ -172,7 +186,7 @@ def restaurant_performance(
     page = frame.iloc[offset : offset + limit]
     return {
         "source": "processed_parquet",
-        "definition": "Completed orders are rows whose lowercased status is 'completed'. Spend is the sum of total_amount. Average rating comes from restaurant_features.parquet.",
+        "definition": "Completed orders are rows whose lowercased status is 'completed'. Spend is the sum of total_amount. Average rating is the restaurant sample-review mean from restaurant_features.parquet, not a live public rating and not a dish rating.",
         "features_unavailable": features_note,
         "total": total,
         "cuisines": cuisines,
@@ -230,7 +244,7 @@ def sentiment_report(label: str | None = None, limit: int = 25, offset: int = 0)
     return {
         "source": "processed_parquet",
         "backend": "stored_output",
-        "backend_note": "These rows are the sentiment file already on disk. This request does not run VADER or the transformer.",
+        "backend_note": SENTIMENT_NOTICE,
         "distribution": distribution,
         "by_restaurant": by_restaurant,
         "by_month": by_month,
@@ -315,8 +329,29 @@ def churn(category: str | None = None, limit: int = 20) -> dict[str, object]:
 def recommendation_customers(limit: int = 50) -> dict[str, object]:
     """List customer ids that already have a stored recommendation."""
     frame = _read("food_recommendations.parquet", ["customer_id"])
-    identifiers = sorted({str(value) for value in frame["customer_id"].dropna().unique()})
+    identifiers = sort_customer_ids(frame["customer_id"].dropna().tolist())
     return {"source": "processed_parquet", "total": len(identifiers), "customer_ids": identifiers[:limit]}
+
+
+def sort_customer_ids(values: list[object]) -> list[str]:
+    """Sort customer ids numerically when they are numbers, not lexicographically.
+
+    ``sorted({"1", "2", "10"})`` would yield ``1, 10, 2``. Numeric sort yields
+    ``1, 2, 10``. Non-numeric tokens sort after numbers. The unique set is taken
+    after string conversion so ``1`` and ``"1"`` are the same id.
+    """
+    unique = {str(value).strip() for value in values if not _missing(value) and str(value).strip()}
+    return sorted(unique, key=_customer_id_sort_key)
+
+
+def _customer_id_sort_key(value: str) -> tuple:
+    try:
+        number = float(value)
+    except ValueError:
+        return (1, value.casefold(), value)
+    if number.is_integer():
+        return (0, int(number), value)
+    return (0, number, value)
 
 
 def recommendations_for(customer_id: str) -> dict[str, object]:
@@ -380,6 +415,8 @@ def association_rules(sort: str = "lift", limit: int = 25, offset: int = 0) -> d
     page = frame.iloc[offset : offset + limit]
     return {
         "source": "processed_parquet",
+        "notice": ASSOCIATION_NOTICE,
+        "mining": _association_mining_context(),
         "total": total,
         "items": [_row(record) for record in page.to_dict(orient="records")],
     }
@@ -392,7 +429,9 @@ def forecast_restaurants() -> dict[str, object]:
     identifiers = sorted({str(value) for value in subset["restaurant_id"].dropna().unique()})
     models = sorted({str(value) for value in subset["model_name"].dropna().unique()})
     aggregations = sorted({str(value) for value in subset["aggregation"].dropna().unique()})
-    return {"restaurant_ids": identifiers, "models": models, "aggregations": aggregations}
+    names = _lookup("restaurants.parquet", "id", "name")
+    restaurants = [{"id": identifier, "name": names.get(identifier)} for identifier in identifiers]
+    return {"restaurant_ids": identifiers, "restaurants": restaurants, "models": models, "aggregations": aggregations}
 
 
 def forecast_series(restaurant_id: str, model_name: str = "ridge", aggregation: str = "daily") -> dict[str, object]:
@@ -404,17 +443,29 @@ def forecast_series(restaurant_id: str, model_name: str = "ridge", aggregation: 
         ["level", "restaurant_id", "period_start", "actual_demand", "aggregation"],
         [("level", "=", "restaurant"), ("restaurant_id", "=", restaurant_id), ("aggregation", "=", aggregation)],
     )
-    forecasts = _filter(
-        "demand_forecasts.parquet",
-        ["level", "restaurant_id", "forecast_date", "predicted_demand", "aggregation", "model_name", "forecast_role", "evaluation_mae", "evaluation_rmse", "evaluation_wape"],
-        [
-            ("level", "=", "restaurant"),
-            ("restaurant_id", "=", restaurant_id),
-            ("aggregation", "=", aggregation),
-            ("model_name", "=", model_name),
-            ("forecast_role", "=", "forward"),
-        ],
-    )
+    forecast_columns = [
+        "level",
+        "restaurant_id",
+        "forecast_date",
+        "predicted_demand",
+        "aggregation",
+        "model_name",
+        "forecast_role",
+        "evaluation_mae",
+        "evaluation_rmse",
+        "evaluation_wape",
+    ]
+    forecast_filters = [
+        ("level", "=", "restaurant"),
+        ("restaurant_id", "=", restaurant_id),
+        ("aggregation", "=", aggregation),
+        ("model_name", "=", model_name),
+        ("forecast_role", "=", "forward"),
+    ]
+    try:
+        forecasts = _filter("demand_forecasts.parquet", [*forecast_columns, "horizon"], forecast_filters)
+    except AnalyticsDataError:
+        forecasts = _filter("demand_forecasts.parquet", forecast_columns, forecast_filters)
     return build_forecast_series(history, forecasts, restaurant_id, model_name, aggregation)
 
 
@@ -460,6 +511,14 @@ def build_forecast_series(
                 "predicted": _json_value(record.get("predicted_demand")),
             }
         )
+    history_dates = [point["date"] for point in points if point["actual"] is not None]
+    forecast_dates = [point["date"] for point in points if point["predicted"] is not None]
+    overlap = sum(1 for point in points if point["actual"] is not None and point["predicted"] is not None)
+    horizon = None
+    if "horizon" in forecasts.columns and forecasts["horizon"].notna().any():
+        horizon_values = pd.to_numeric(forecasts["horizon"], errors="coerce").dropna()
+        if not horizon_values.empty:
+            horizon = int(horizon_values.iloc[0])
     return {
         "source": "processed_parquet",
         "notice": FORECAST_NOTICE,
@@ -467,6 +526,15 @@ def build_forecast_series(
         "restaurant_id": restaurant_id,
         "model_name": model_name,
         "aggregation": aggregation,
+        "horizon": horizon,
+        "history_start": history_dates[0] if history_dates else None,
+        "history_end": history_dates[-1] if history_dates else None,
+        "forecast_start": forecast_dates[0] if forecast_dates else None,
+        "forecast_end": forecast_dates[-1] if forecast_dates else None,
+        "history_points": len(history_dates),
+        "forecast_points": len(forecast_dates),
+        "overlap_points": overlap,
+        "comparable": bool(history_dates) and bool(forecast_dates),
         "evaluation": metrics,
         "points": points,
     }
@@ -524,7 +592,11 @@ def association_itemsets(limit: int = 15) -> dict[str, object]:
     ordered = frame.sort_values("support", ascending=False, na_position="last").head(limit)
     return {
         "source": "processed_parquet",
-        "notice": "Support is the share of baskets that contain the itemset. These rows are stored mining output.",
+        "notice": (
+            "Support is the share of completed-order baskets that contain the itemset. "
+            "These rows are stored Apriori output. Association is not causation."
+        ),
+        "mining": _association_mining_context(),
         "items": [_row(record) for record in ordered.to_dict(orient="records")],
     }
 
@@ -620,6 +692,33 @@ def _count(filename: str, column: str, unavailable: list[str]) -> int | None:
         unavailable.append(exc.message)
         return None
     return int(frame[column].notna().sum())
+
+
+def _association_mining_context() -> dict[str, object] | None:
+    """Return stored mining thresholds and basket counts when the metrics file exists."""
+    path = processed_dir() / "association_mining_metrics.json"
+    if not path.is_file():
+        return None
+    try:
+        payload = json.loads(path.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError, TypeError):
+        return None
+    if not isinstance(payload, dict):
+        return None
+    filters = payload.get("filters") if isinstance(payload.get("filters"), dict) else {}
+    transactions = payload.get("transactions") if isinstance(payload.get("transactions"), dict) else {}
+    thresholds = payload.get("thresholds") if isinstance(payload.get("thresholds"), dict) else {}
+    scope = payload.get("scope") if isinstance(payload.get("scope"), dict) else {}
+    return {
+        "file": "association_mining_metrics.json",
+        "basket": filters.get("basket"),
+        "valid_transactions": transactions.get("valid_transactions"),
+        "min_support": thresholds.get("min_support"),
+        "min_confidence": thresholds.get("min_confidence"),
+        "min_lift": thresholds.get("min_lift"),
+        "scope_mode": scope.get("mode"),
+        "algorithm": payload.get("algorithm"),
+    }
 
 
 def _read(filename: str, columns: list[str]) -> pd.DataFrame:

@@ -21,6 +21,7 @@ CUISINE_LIMIT = 2
 CUISINE_ITEM_LIMIT = 40
 COLD_RESTAURANT_LIMIT = 10
 COLD_ITEMS_PER_RESTAURANT = 2
+COLD_ITEM_LIMIT = 20
 
 
 def load_association_rules(path, foods: pd.DataFrame) -> tuple[pd.DataFrame, list[str]]:
@@ -147,8 +148,18 @@ def food_candidates(context: dict[str, object], rules: pd.DataFrame, customer_id
     return pd.DataFrame(rows)
 
 
-def food_candidate_rows(context: dict[str, object], rule_rows: list[tuple], customer_id: str) -> list[dict[str, object]]:
-    """Return food candidates without building a DataFrame."""
+def food_candidate_rows(
+    context: dict[str, object],
+    rule_rows: list[tuple],
+    customer_id: str,
+    variant: str = "baseline",
+) -> list[dict[str, object]]:
+    """Return food candidates without building a DataFrame.
+
+    The improved variant still uses association, cuisine, and repeats. Cold-start
+    and cuisine pools are ranked by item-level completed-order popularity instead
+    of restaurant-level sample quality.
+    """
     mine = _customer_purchases(context, customer_id)
     bought = set(mine["food_item_id"]) if not mine.empty else set()
     repeats = set(mine.loc[mine["purchase_count"] >= 2, "food_item_id"]) if not mine.empty else set()
@@ -181,15 +192,15 @@ def food_candidate_rows(context: dict[str, object], rule_rows: list[tuple], cust
             if rule[0] in bought:
                 add(rule[1], "association")
     if mine.empty:
-        for item_id in _cold_ids(context):
+        for item_id in _cold_ids(context, variant):
             add(item_id, "cold_start")
     else:
-        for item_id in _cuisine_item_ids(context, mine, bought):
+        for item_id in _cuisine_item_ids(context, mine, bought, variant):
             add(item_id, "cuisine")
         for item_id in repeats:
             add(item_id, "repeat")
         if mine["order_id"].nunique() <= 2:
-            for item_id in _cold_ids(context):
+            for item_id in _cold_ids(context, variant):
                 add(item_id, "cold_start")
     return rows
 
@@ -412,22 +423,31 @@ def _indexed_context(customers, catalog, static, purchases, quality, warnings, c
     }
 
 
-def _cold_ids(context: dict[str, object]) -> list[str]:
-    cached = context.get("cold_item_ids")
+def _cold_ids(context: dict[str, object], variant: str = "baseline") -> list[str]:
+    cache_key = f"cold_item_ids_{variant}"
+    cached = context.get(cache_key)
     if cached is not None:
         return cached
     lookup: dict[str, dict[str, object]] = context["item_lookup"]
     by_restaurant: dict[object, list[str]] = context["items_by_restaurant"]
+    if variant == "improved":
+        ranked = sorted(
+            lookup.values(),
+            key=lambda item: (-float(item["item_popularity"]), -float(item["quality_score"]), str(item["food_item_id"])),
+        )
+        chosen = [str(item["food_item_id"]) for item in ranked[:COLD_ITEM_LIMIT]]
+        context[cache_key] = chosen
+        return chosen
     places = []
     for restaurant_id, item_ids in by_restaurant.items():
         quality = max(float(lookup[item_id]["quality_score"]) for item_id in item_ids)
         places.append((-quality, str(restaurant_id), restaurant_id))
     places.sort()
-    chosen: list[str] = []
+    chosen = []
     for _quality, _label, restaurant_id in places[:COLD_RESTAURANT_LIMIT]:
         ordered = sorted(by_restaurant[restaurant_id], key=str)
         chosen.extend(ordered[:COLD_ITEMS_PER_RESTAURANT])
-    context["cold_item_ids"] = chosen
+    context[cache_key] = chosen
     return chosen
 
 
@@ -466,7 +486,12 @@ def _add_popularity(catalog: pd.DataFrame, purchases: pd.DataFrame, quality: pd.
     return menu
 
 
-def _cuisine_item_ids(context: dict[str, object], purchases: pd.DataFrame, bought: set[str]) -> list[str]:
+def _cuisine_item_ids(
+    context: dict[str, object],
+    purchases: pd.DataFrame,
+    bought: set[str],
+    variant: str = "baseline",
+) -> list[str]:
     counts = purchases.groupby("cuisine_type", dropna=False).size()
     if counts.empty:
         return []
@@ -481,7 +506,16 @@ def _cuisine_item_ids(context: dict[str, object], purchases: pd.DataFrame, bough
         for item_id in cuisine_items.get(name, []):
             if item_id not in bought:
                 pool.append(item_id)
-    pool.sort(key=lambda item_id: (-lookup[item_id]["quality_score"], str(lookup[item_id]["food_item_id"])))
+    if variant == "improved":
+        pool.sort(
+            key=lambda item_id: (
+                -float(lookup[item_id]["item_popularity"]),
+                -float(lookup[item_id]["quality_score"]),
+                str(lookup[item_id]["food_item_id"]),
+            )
+        )
+    else:
+        pool.sort(key=lambda item_id: (-lookup[item_id]["quality_score"], str(lookup[item_id]["food_item_id"])))
     return pool[:CUISINE_ITEM_LIMIT]
 
 

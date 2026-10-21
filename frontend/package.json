@@ -7,6 +7,9 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "lint": "oxlint",
+    "test:discovery": "node --experimental-strip-types --test tests/discoveryFilters.test.ts tests/foodImages.test.ts",
+    "test:insights": "node --experimental-strip-types --test tests/metricExplanations.test.ts",
+    "test:frontend": "node --experimental-strip-types --test tests/*.test.ts",
     "preview": "vite preview"
   },
   "dependencies": {

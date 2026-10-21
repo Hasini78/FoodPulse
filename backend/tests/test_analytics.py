@@ -157,6 +157,9 @@ def test_sentiment_churn_and_rules(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     report = analytics_service.sentiment_report()
     assert report["items"][0]["review_text"] == "ok"
     assert report["by_restaurant"][0]["restaurant_name"] == "North"
+    assert "sample review" in report["backend_note"]
+    assert "live public opinion" in report["backend_note"]
+    assert "dish ratings" in report["backend_note"]
     _write(
         directory,
         "customer_churn_summary.parquet",
@@ -207,6 +210,41 @@ def test_sentiment_churn_and_rules(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     rules = analytics_service.association_rules()
     assert rules["items"][0]["antecedent_names"] == "Naan"
     assert rules["items"][0]["lift"] == pytest.approx(1.4)
+    assert "not causation" in rules["notice"]
+    assert "Support is how often" in rules["notice"]
+    assert rules["mining"] is None
+    (directory / "association_mining_metrics.json").write_text(
+        '{"filters": {"basket": "One basket per completed (restaurant_id, order_id)."}, '
+        '"transactions": {"valid_transactions": 12}, "thresholds": {"min_support": 0.1, '
+        '"min_confidence": 0.3, "min_lift": null}, "scope": {"mode": "all_completed_orders"}, '
+        '"algorithm": "apriori"}',
+        encoding="utf-8",
+    )
+    with_metrics = analytics_service.association_rules()
+    assert with_metrics["mining"]["valid_transactions"] == 12
+    assert with_metrics["mining"]["min_support"] == pytest.approx(0.1)
+    assert with_metrics["mining"]["min_lift"] is None
+    assert "basket" in with_metrics["mining"]["basket"]
+
+
+def test_recommendation_customers_sort_numerically(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    directory = _processed(tmp_path, monkeypatch)
+    _write(
+        directory,
+        "food_recommendations.parquet",
+        pd.DataFrame(
+            {
+                    "customer_id": ["10", "1", "100", "2", "1"],
+                "food_item_id": [1, 2, 3, 4, 5],
+                "recommendation_score": [0.1, 0.2, 0.3, 0.4, 0.5],
+                "rank": [1, 1, 1, 1, 2],
+            }
+        ),
+    )
+    payload = analytics_service.recommendation_customers(limit=3)
+    assert payload["customer_ids"] == ["1", "2", "10"]
+    assert payload["total"] == 4
+    assert analytics_service.sort_customer_ids(["100", "2", "10", "1", "alpha"]) == ["1", "2", "10", "100", "alpha"]
 
 
 def test_recommendations_and_forecast_do_not_mix_holdout(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
@@ -275,6 +313,24 @@ def test_recommendations_and_forecast_do_not_mix_holdout(tmp_path: Path, monkeyp
     assert by_date["2026-10-11"]["predicted"] is None
     assert by_date["2026-10-12"]["predicted"] == pytest.approx(5.0)
     assert series["evaluation"]["mae"] == pytest.approx(0.2)
+    assert series["comparable"] is True
+    assert series["history_points"] == 1
+    assert series["forecast_points"] == 1
+    assert series["overlap_points"] == 0
+    assert series["history_start"] == "2026-10-11"
+    assert series["forecast_start"] == "2026-10-12"
+    assert series["intervals"] is None
+    empty = analytics_service.build_forecast_series(
+        pd.DataFrame(columns=["period_start", "actual_demand"]),
+        pd.DataFrame(columns=["forecast_date", "predicted_demand", "forecast_role", "evaluation_mae", "evaluation_rmse", "evaluation_wape"]),
+        "3",
+        "ridge",
+        "daily",
+    )
+    assert empty["comparable"] is False
+    assert empty["history_points"] == 0
+    assert empty["forecast_points"] == 0
+    assert empty["points"] == []
 
 
 def test_invalid_sort_and_missing_file_http(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:

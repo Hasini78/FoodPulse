@@ -6,7 +6,7 @@ import { PageHeader } from '../components/PageHeader'
 export function CustomersPage() {
   return (
     <div className="space-y-6">
-      <PageHeader title="Customers" description="A customer-level view is not connected to the API yet." />
+      <PageHeader title="Customers" description="A customer-level directory is not connected to the API yet. Customer records in this project include Faker-generated sample identities." />
       <div className="rounded-card border border-line bg-card p-8 shadow-card">
         <div className="mx-auto flex max-w-md flex-col items-center gap-3 text-center">
           <span className="grid size-12 place-items-center rounded-2xl bg-brand-soft text-brand-strong">

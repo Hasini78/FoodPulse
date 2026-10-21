@@ -49,7 +49,7 @@ export function OverviewPage() {
         <MetricCard tone="orange" icon={<Icon name="wallet" size={22} />} label="Completed revenue" loading={loading} value={show(data?.completed_revenue, 2)} hint="Sum of total_amount on completed orders" />
         <MetricCard tone="blue" icon={<Icon name="receipt" size={22} />} label="Completed orders" loading={loading} value={show(data?.completed_orders)} hint="Status lowercased to completed" />
         <MetricCard tone="green" icon={<Icon name="bag" size={22} />} label="Avg order value" loading={loading} value={show(data?.average_order_value, 2)} hint="Completed orders only" />
-        <MetricCard tone="violet" icon={<Icon name="star" size={22} />} label="Avg rating" loading={loading} value={show(data?.average_rating, 2)} hint="Mean of reviews.parquet rating" />
+        <MetricCard tone="violet" icon={<Icon name="star" size={22} />} label="Avg sample rating" loading={loading} value={show(data?.average_rating, 2)} hint="Mean of sample reviews.parquet ratings, restaurant-level, not dish ratings" />
       </div>
 
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
@@ -83,7 +83,7 @@ export function OverviewPage() {
         </Panel>
         <Panel
           title="Sentiment mix"
-          description="Labels and counts from review_sentiment.parquet. The model is not retrained here."
+          description="Labels and counts from sample reviews in review_sentiment.parquet. Not live public opinion. The model is not retrained here."
           status={processed.status}
           error={processed.error}
           empty={processed.status === 'ready' && !sentiment.length}
@@ -100,7 +100,7 @@ export function OverviewPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Panel title="Stored segments" description="Labels and counts from customer_segment_summary.parquet." status={processed.status} error={processed.error} empty={processed.status === 'ready' && !segments.length} emptyMessage="Segment summary is unavailable.">
+        <Panel title="Stored segments" description="Labels and counts from customer_segment_summary.parquet. These are data-derived groups, not verified identities." status={processed.status} error={processed.error} empty={processed.status === 'ready' && !segments.length} emptyMessage="Segment summary is unavailable.">
           <PlotlyChart title="Customers by segment" xTitle="Segment" yTitle="Customers" data={[{ type: 'bar', x: segments.map((row) => row.segment_label), y: segments.map((row) => row.count), name: 'Customers', marker: { color: '#3B6CF6' } }]} />
         </Panel>
         <Panel title="Stored churn-risk categories" description="Counts from customer_churn_summary.parquet. The score is a rule-based point total, not a probability." status={processed.status} error={processed.error} empty={processed.status === 'ready' && !churn.length} emptyMessage="Churn summary is unavailable.">
@@ -109,7 +109,7 @@ export function OverviewPage() {
       </div>
 
       <div className="grid gap-6 lg:grid-cols-2">
-        <Panel title="Stored forecast window" description={data?.forecast?.notice ?? 'Forecast summary comes from demand_forecasts.parquet.'} status={processed.status} error={processed.error} empty={processed.status === 'ready' && !data?.forecast?.available} emptyMessage="Forward forecast summary is unavailable.">
+        <Panel title="Stored forecast window" description={data?.forecast?.notice ?? 'Forecast summary comes from demand_forecasts.parquet. These are model estimates, not guaranteed demand.'} status={processed.status} error={processed.error} empty={processed.status === 'ready' && !data?.forecast?.available} emptyMessage="Forward forecast summary is unavailable.">
           <dl className="grid grid-cols-2 gap-3 text-sm">
             {[
               ['Model', String(data?.forecast?.model_name ?? 'Unavailable')],

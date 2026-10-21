@@ -2,7 +2,7 @@
 
 from fastapi import APIRouter, HTTPException, Query
 
-from app.services import analytics_service
+from app.services import analytics_service, discovery_service
 from app.services.analytics_service import AnalyticsDataError
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
@@ -84,6 +84,29 @@ def get_recommendation_summary(limit: int = Query(10, ge=1, le=50)) -> dict:
 def get_recommendation_customers(limit: int = Query(50, ge=1, le=200)) -> dict:
     """Customer ids that already have stored recommendations."""
     return _call(analytics_service.recommendation_customers, limit=limit)
+
+
+@router.get("/recommendations/{customer_id}/discovery")
+def get_recommendation_discovery(
+    customer_id: str,
+    limit: int = Query(8, ge=1, le=20),
+    min_support_count: int = Query(14, ge=1),
+    min_confidence: float = Query(0.3, ge=0, le=1),
+    min_lift: float = Query(1.0, ge=0),
+    cuisine: str | None = Query(None),
+    category: str | None = Query(None),
+) -> dict:
+    """Plain-language discovery rows from stored recommendations and association rules."""
+    return _call(
+        discovery_service.discovery,
+        customer_id,
+        limit=limit,
+        min_support_count=min_support_count,
+        min_confidence=min_confidence,
+        min_lift=min_lift,
+        cuisine=cuisine,
+        category=category,
+    )
 
 
 @router.get("/recommendations/{customer_id}")

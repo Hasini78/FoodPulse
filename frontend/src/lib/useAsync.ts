@@ -13,13 +13,15 @@ export function useAsync<T>(loader: () => Promise<T>, deps: readonly unknown[]):
 
   useEffect(() => {
     let active = true
-    setState({ status: 'loading' })
+    setState((previous) => ({ status: 'loading', data: previous.data }))
     loader()
       .then((data) => {
         if (active) setState({ status: 'ready', data })
       })
       .catch((error: unknown) => {
-        if (active) setState({ status: 'error', error: errorMessage(error) })
+        if (active) {
+          setState((previous) => ({ status: 'error', error: errorMessage(error), data: previous.data }))
+        }
       })
     return () => {
       active = false

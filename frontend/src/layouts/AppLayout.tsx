@@ -13,6 +13,7 @@ const groups: Array<{ title: string; items: NavItem[] }> = [
     items: [
       { to: '/app', label: 'Dashboard', icon: 'dashboard', end: true },
       { to: '/app/restaurants', label: 'Restaurants', icon: 'store' },
+      { to: '/app/nearby', label: 'Nearby', icon: 'mapPin' },
       { to: '/app/customers', label: 'Customers', icon: 'user' },
     ],
   },

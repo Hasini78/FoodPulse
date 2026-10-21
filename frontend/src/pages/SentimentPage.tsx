@@ -6,9 +6,11 @@ import { SelectField } from '../components/Field'
 import { PageHeader } from '../components/PageHeader'
 import { Panel } from '../components/Panel'
 import { PlotlyChart } from '../components/PlotlyChart'
+import { MetricGlossary } from '../components/SourceNote'
 import { getSentiment } from '../lib/analytics'
 import { sentimentColor } from '../lib/chartTheme'
 import { formatNumber, formatPercent } from '../lib/format'
+import { SENTIMENT_SOURCE, ratingSourceCaption, sentimentScoreCaption, sourceSentence } from '../lib/metricExplanations'
 import { useAsync } from '../lib/useAsync'
 
 const ASPECTS = ['food', 'service', 'ambience', 'price']
@@ -26,14 +28,22 @@ export function SentimentPage() {
     <div className="space-y-6">
       <PageHeader
         title="Sentiment"
-        description={`${state.data?.backend_note ?? 'This page reads the stored sentiment file. It does not run VADER or the transformer.'} Aspect bars use food_sent, service_sent, ambience_sent, and price_sent when those columns exist.`}
+        description={state.data?.backend_note ?? sentimentScoreCaption()}
+      />
+
+      <MetricGlossary
+        items={[
+          { term: 'Sentiment score', meaning: 'Stored VADER compound for each sample review, typically -1 to 1. Positive ≥ 0.05, negative ≤ -0.05, otherwise neutral.' },
+          { term: 'Restaurant mean', meaning: 'Mean of those review scores at the restaurant. This is not a food-item rating.' },
+          { term: 'Star rating', meaning: 'The stored sample-review rating on reviews.parquet. It is not live public opinion.' },
+        ]}
       />
 
       <div className="grid gap-6 xl:grid-cols-3">
-        <Panel title="Overall distribution" status={state.status} error={state.error} empty={!distribution.length} emptyMessage="Sentiment output is unavailable.">
+        <Panel title="Overall distribution" description="Label counts from stored sample reviews. This is not a live public poll." status={state.status} error={state.error} empty={!distribution.length} emptyMessage="Sentiment output is unavailable." source={sourceSentence(SENTIMENT_SOURCE)}>
           <PlotlyChart title="Overall sentiment" height={320} showLegend data={[{ type: 'pie', hole: 0.62, sort: false, labels: distribution.map((row) => row.label), values: distribution.map((row) => row.count), name: 'Reviews', marker: { colors: distribution.map((row) => sentimentColor(row.label)), line: { color: '#fff', width: 3 } }, textinfo: 'percent', textfont: { color: '#fff', size: 12 }, hovertemplate: '%{label}: %{value} reviews<extra></extra>' }]} />
         </Panel>
-        <Panel className="xl:col-span-2" title="Sentiment by month" description="Counts from sentiment_by_month.parquet." status={state.status} error={state.error} empty={!byMonth.length} emptyMessage={state.data?.monthly_unavailable ?? 'Monthly sentiment is unavailable.'}>
+        <Panel className="xl:col-span-2" title="Sentiment by month" description="Counts from sentiment_by_month.parquet. Missing months are not filled in." status={state.status} error={state.error} empty={!byMonth.length} emptyMessage={state.data?.monthly_unavailable ?? 'Monthly sentiment is unavailable.'} source={sourceSentence({ dataset: SENTIMENT_SOURCE.monthly, unit: SENTIMENT_SOURCE.unit, sample: true })}>
           <PlotlyChart
             title="Monthly sentiment counts"
             xTitle="Month"
@@ -49,7 +59,7 @@ export function SentimentPage() {
       </div>
 
       <div className="grid gap-6 xl:grid-cols-2">
-        <Panel title="Aspect labels" description="Stored aspect labels. Ambience can be entirely 'not mentioned' when the lexicon found no ambience words." status={state.status} error={state.error} empty={!aspects.length} emptyMessage={state.data?.aspects_unavailable ?? 'Aspect columns are unavailable.'}>
+        <Panel title="Aspect labels" description="Stored lexicon labels on sample review text. Ambience can be entirely 'not mentioned' when no ambience words were found." status={state.status} error={state.error} empty={!aspects.length} emptyMessage={state.data?.aspects_unavailable ?? 'Aspect columns are unavailable.'} source={sourceSentence(SENTIMENT_SOURCE)}>
           <PlotlyChart
             title="Aspect sentiment"
             xTitle="Aspect"
@@ -64,9 +74,9 @@ export function SentimentPage() {
             }))}
           />
         </Panel>
-        <Panel title="By restaurant" description="The fifteen restaurants with the most stored reviews. Counts come from sentiment_by_restaurant.parquet." status={state.status} error={state.error} empty={!byRestaurant.length} emptyMessage="Restaurant sentiment is unavailable.">
+        <Panel title="By restaurant" description="The fifteen restaurants with the most stored sample reviews. Mean score is restaurant-level, not a dish rating." status={state.status} error={state.error} empty={!byRestaurant.length} emptyMessage="Restaurant sentiment is unavailable." source={sourceSentence({ dataset: SENTIMENT_SOURCE.restaurants, unit: 'restaurant', sample: true })}>
           <PlotlyChart
-            title="Positive and negative reviews"
+            title="Positive and negative sample reviews"
             yTitle="Reviews"
             data={['positive_count', 'negative_count'].map((key) => {
               const name = key.replace('_count', '')
@@ -78,10 +88,12 @@ export function SentimentPage() {
 
       <Panel
         title="Review results"
-        description="A page of stored review-level scores. Text is shortened for display."
+        description={`${sentimentScoreCaption()} Text is shortened for display. ${ratingSourceCaption()}`}
         status={state.status}
         error={state.error}
         empty={!(state.data?.items ?? []).length}
+        emptyMessage="No stored sample reviews match this label."
+        source={sourceSentence({ dataset: `${SENTIMENT_SOURCE.dataset} joined to ${SENTIMENT_SOURCE.reviews}`, unit: SENTIMENT_SOURCE.unit, sample: true })}
         actions={<SelectField label="Review label" value={label} onChange={setLabel} options={[{ value: '', label: 'All stored labels' }, ...labels]} />}
       >
         <DataTable
@@ -90,8 +102,8 @@ export function SentimentPage() {
           columns={[
             { key: 'id', header: 'Review', render: (row) => String(row.review_id ?? 'Unavailable') },
             { key: 'label', header: 'Sentiment', render: (row) => <Badge tone={sentimentTone(String(row.overall_sentiment ?? ''))}>{String(row.overall_sentiment ?? 'Unavailable')}</Badge> },
-            { key: 'score', header: 'Score', align: 'right', render: (row) => formatNumber(row.overall_score, 3) },
-            { key: 'rating', header: 'Rating', align: 'right', render: (row) => formatNumber(row.rating) },
+            { key: 'score', header: 'Compound score', align: 'right', render: (row) => formatNumber(row.overall_score, 3) },
+            { key: 'rating', header: 'Sample rating', align: 'right', render: (row) => formatNumber(row.rating) },
             { key: 'share', header: 'Share of shown label', align: 'right', render: (row) => formatPercent(distribution.find((item) => item.label === row.overall_sentiment)?.proportion) },
             { key: 'text', header: 'Review text', render: (row) => <span className="line-clamp-2 max-w-md">{String(row.review_text ?? 'Unavailable')}</span> },
           ]}

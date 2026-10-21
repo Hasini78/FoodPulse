@@ -23,7 +23,7 @@ export function ChurnPage() {
     <div className="space-y-6">
       <PageHeader
         title="Churn risk"
-        description={`${state.data?.notice ?? 'These categories are model-derived classifications, not confirmed behavior.'} The score is a rule-based point total, not a calibrated probability.`}
+        description={`${state.data?.notice ?? 'These categories are model-derived classifications, not confirmed behavior.'} The score is a rule-based point total, not a calibrated probability. Source: customer_churn_summary.parquet and customer_churn_risk.parquet. Unit of analysis: customer.`}
         actions={<SelectField label="Category filter" value={category} onChange={setCategory} options={[{ value: '', label: 'All categories' }, ...categories]} />}
       />
 

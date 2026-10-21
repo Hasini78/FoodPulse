@@ -10,21 +10,62 @@ import pandas as pd
 
 from mining.recommendation.candidates import food_candidate_rows, restaurant_candidate_rows
 
-FOOD_HISTORY_WEIGHTS = {
+BASELINE_FOOD_HISTORY_WEIGHTS = {
     "cuisine_fit": 0.25,
     "association": 0.25,
     "quality": 0.20,
     "familiarity": 0.20,
     "popularity": 0.10,
 }
-FOOD_COLD_WEIGHTS = {"quality": 0.75, "popularity": 0.25}
-RESTAURANT_HISTORY_WEIGHTS = {
+BASELINE_FOOD_COLD_WEIGHTS = {"quality": 0.75, "popularity": 0.25}
+BASELINE_RESTAURANT_HISTORY_WEIGHTS = {
     "cuisine_fit": 0.40,
     "quality": 0.40,
     "familiarity": 0.10,
     "popularity": 0.10,
 }
-RESTAURANT_COLD_WEIGHTS = {"quality": 0.75, "popularity": 0.25}
+BASELINE_RESTAURANT_COLD_WEIGHTS = {"quality": 0.75, "popularity": 0.25}
+
+# Food quality is a restaurant-level sample-review average, not a dish rating.
+# The improved preset therefore shifts a little weight from that restaurant
+# prior onto item-level completed-order popularity. Familiarity is not increased,
+# because the holdout target is usually a restaurant the customer has not used.
+IMPROVED_FOOD_HISTORY_WEIGHTS = {
+    "cuisine_fit": 0.25,
+    "association": 0.25,
+    "quality": 0.15,
+    "familiarity": 0.15,
+    "popularity": 0.20,
+}
+IMPROVED_FOOD_COLD_WEIGHTS = {"quality": 0.40, "popularity": 0.60}
+IMPROVED_RESTAURANT_HISTORY_WEIGHTS = {
+    "cuisine_fit": 0.45,
+    "quality": 0.20,
+    "familiarity": 0.10,
+    "popularity": 0.25,
+}
+IMPROVED_RESTAURANT_COLD_WEIGHTS = {"quality": 0.35, "popularity": 0.65}
+
+VARIANTS = {
+    "baseline": {
+        "food_history": BASELINE_FOOD_HISTORY_WEIGHTS,
+        "food_cold": BASELINE_FOOD_COLD_WEIGHTS,
+        "restaurant_history": BASELINE_RESTAURANT_HISTORY_WEIGHTS,
+        "restaurant_cold": BASELINE_RESTAURANT_COLD_WEIGHTS,
+    },
+    "improved": {
+        "food_history": IMPROVED_FOOD_HISTORY_WEIGHTS,
+        "food_cold": IMPROVED_FOOD_COLD_WEIGHTS,
+        "restaurant_history": IMPROVED_RESTAURANT_HISTORY_WEIGHTS,
+        "restaurant_cold": IMPROVED_RESTAURANT_COLD_WEIGHTS,
+    },
+}
+
+DEFAULT_VARIANT = "baseline"
+FOOD_HISTORY_WEIGHTS = BASELINE_FOOD_HISTORY_WEIGHTS
+FOOD_COLD_WEIGHTS = BASELINE_FOOD_COLD_WEIGHTS
+RESTAURANT_HISTORY_WEIGHTS = BASELINE_RESTAURANT_HISTORY_WEIGHTS
+RESTAURANT_COLD_WEIGHTS = BASELINE_RESTAURANT_COLD_WEIGHTS
 LIMITED_HISTORY_ORDERS = 2
 
 FOOD_COLUMNS = [
@@ -50,12 +91,18 @@ def recommend(
     food_k: int,
     restaurant_k: int,
     limited_history_orders: int = LIMITED_HISTORY_ORDERS,
+    variant: str = DEFAULT_VARIANT,
 ) -> tuple[pd.DataFrame, pd.DataFrame]:
-    """Rank food and restaurant recommendations for every customer in the context."""
+    """Rank food and restaurant recommendations for every customer in the context.
+
+    ``variant`` is ``baseline`` (original weights and candidates) or ``improved``.
+    The score ranks candidates. It is not a purchase probability.
+    """
     if food_k < 1 or restaurant_k < 1:
         raise ValueError("food_k and restaurant_k must be integers greater than or equal to 1")
     if limited_history_orders < 1:
         raise ValueError("limited_history_orders must be an integer greater than or equal to 1")
+    spec = _variant_spec(variant)
     food_rows: list[dict[str, object]] = []
     restaurant_rows: list[dict[str, object]] = []
     customers: pd.DataFrame = context["customers"]
@@ -64,19 +111,35 @@ def recommend(
     places: dict[str, dict[str, float]] = context["restaurant_lookup"]
     for customer_id in sorted(customers["customer_id"].dropna().unique(), key=_sort_key):
         profile = _profile(context, str(customer_id))
-        food_rows.extend(_rank_food(context, rule_rows, str(customer_id), food_k, limited_history_orders, profile, lookup))
-        restaurant_rows.extend(_rank_restaurants(places, str(customer_id), restaurant_k, limited_history_orders, profile, context))
+        food_rows.extend(
+            _rank_food(context, rule_rows, str(customer_id), food_k, limited_history_orders, profile, lookup, spec, variant)
+        )
+        restaurant_rows.extend(
+            _rank_restaurants(places, str(customer_id), restaurant_k, limited_history_orders, profile, context, spec)
+        )
     return _frame(food_rows, FOOD_COLUMNS), _frame(restaurant_rows, RESTAURANT_COLUMNS)
 
 
-def _rank_food(context, rule_rows, customer_id: str, food_k: int, limited_history_orders: int, profile: dict[str, object], lookup: dict[str, dict[str, object]]) -> list[dict[str, object]]:
-    candidates = food_candidate_rows(context, rule_rows, customer_id)
+def _rank_food(
+    context,
+    rule_rows,
+    customer_id: str,
+    food_k: int,
+    limited_history_orders: int,
+    profile: dict[str, object],
+    lookup: dict[str, dict[str, object]],
+    spec: dict[str, dict[str, float]],
+    variant: str,
+) -> list[dict[str, object]]:
+    candidates = food_candidate_rows(context, rule_rows, customer_id, variant=variant)
     if not candidates:
         return []
     strengths = _best_strengths(rule_rows, profile["purchased_items"])
     alpha = _alpha(profile["order_count"], limited_history_orders)
     cuisine_share: dict[object, float] = profile["cuisine_share"]
     familiarity: dict[object, float] = profile["familiarity"]
+    history_weights = spec["food_history"]
+    cold_weights = spec["food_cold"]
     ranked: list[tuple[float, float, float, int, dict[str, object]]] = []
     for row in candidates:
         item = lookup[str(row["food_item_id"])]
@@ -86,16 +149,26 @@ def _rank_food(context, rule_rows, customer_id: str, food_k: int, limited_histor
         cuisine_fit = float(cuisine_share.get(row["cuisine_type"], 0.0))
         familiar = float(familiarity.get(row["restaurant_id"], 0.0))
         history = (
-            FOOD_HISTORY_WEIGHTS["cuisine_fit"] * cuisine_fit
-            + FOOD_HISTORY_WEIGHTS["association"] * association
-            + FOOD_HISTORY_WEIGHTS["quality"] * quality
-            + FOOD_HISTORY_WEIGHTS["familiarity"] * familiar
-            + FOOD_HISTORY_WEIGHTS["popularity"] * popularity
+            history_weights["cuisine_fit"] * cuisine_fit
+            + history_weights["association"] * association
+            + history_weights["quality"] * quality
+            + history_weights["familiarity"] * familiar
+            + history_weights["popularity"] * popularity
         )
-        cold = FOOD_COLD_WEIGHTS["quality"] * quality + FOOD_COLD_WEIGHTS["popularity"] * popularity
+        cold = cold_weights["quality"] * quality + cold_weights["popularity"] * popularity
         score = alpha * history + (1.0 - alpha) * cold
-        reason = _food_reason(profile["order_count"], limited_history_orders, str(row["source"]), cuisine_fit, association, quality, bool(row["repeat_item"]))
-        ranked.append((score, association, quality, _id_key(row["food_item_id"]), {
+        reason = _food_reason(
+            profile["order_count"],
+            limited_history_orders,
+            str(row["source"]),
+            cuisine_fit,
+            association,
+            quality,
+            bool(row["repeat_item"]),
+            history_weights,
+        )
+        tie = popularity if variant == "improved" else quality
+        ranked.append((score, association, tie, _id_key(row["food_item_id"]), {
             "customer_id": customer_id,
             "food_item_id": row["food_item_id"],
             "restaurant_id": row["restaurant_id"],
@@ -117,13 +190,23 @@ def _rank_food(context, rule_rows, customer_id: str, food_k: int, limited_histor
     return kept
 
 
-def _rank_restaurants(places, customer_id: str, restaurant_k: int, limited_history_orders: int, profile: dict[str, object], context: dict[str, object]) -> list[dict[str, object]]:
+def _rank_restaurants(
+    places,
+    customer_id: str,
+    restaurant_k: int,
+    limited_history_orders: int,
+    profile: dict[str, object],
+    context: dict[str, object],
+    spec: dict[str, dict[str, float]],
+) -> list[dict[str, object]]:
     candidates = restaurant_candidate_rows(context, customer_id)
     if not candidates:
         return []
     alpha = _alpha(profile["order_count"], limited_history_orders)
     cuisine_share: dict[object, float] = profile["cuisine_share"]
     familiarity: dict[object, float] = profile["familiarity"]
+    history_weights = spec["restaurant_history"]
+    cold_weights = spec["restaurant_cold"]
     ranked: list[tuple[float, float, int, dict[str, object]]] = []
     for row in candidates:
         place = places.get(row["restaurant_id"], {})
@@ -132,12 +215,12 @@ def _rank_restaurants(places, customer_id: str, restaurant_k: int, limited_histo
         cuisine_fit = float(cuisine_share.get(row["cuisine_type"], 0.0))
         familiar = float(familiarity.get(row["restaurant_id"], 0.0))
         history = (
-            RESTAURANT_HISTORY_WEIGHTS["cuisine_fit"] * cuisine_fit
-            + RESTAURANT_HISTORY_WEIGHTS["quality"] * quality
-            + RESTAURANT_HISTORY_WEIGHTS["familiarity"] * familiar
-            + RESTAURANT_HISTORY_WEIGHTS["popularity"] * popularity
+            history_weights["cuisine_fit"] * cuisine_fit
+            + history_weights["quality"] * quality
+            + history_weights["familiarity"] * familiar
+            + history_weights["popularity"] * popularity
         )
-        cold = RESTAURANT_COLD_WEIGHTS["quality"] * quality + RESTAURANT_COLD_WEIGHTS["popularity"] * popularity
+        cold = cold_weights["quality"] * quality + cold_weights["popularity"] * popularity
         score = alpha * history + (1.0 - alpha) * cold
         reason = _restaurant_reason(profile["order_count"], limited_history_orders, cuisine_fit, quality, familiar, bool(row["repeat_restaurant"]))
         ranked.append((score, quality, _id_key(row["restaurant_id"]), {
@@ -209,13 +292,30 @@ def _best_strengths(rule_rows: list[tuple[str, str, float]], purchased: set[str]
     return best
 
 
-def _food_reason(order_count: int, limited_history_orders: int, source: str, cuisine_fit: float, association_strength: float, quality_score: float, repeat_item: bool) -> str:
+def _variant_spec(variant: str) -> dict[str, dict[str, float]]:
+    if variant not in VARIANTS:
+        choices = ", ".join(sorted(VARIANTS))
+        raise ValueError(f"Unknown recommendation variant '{variant}'. Use one of: {choices}")
+    return VARIANTS[variant]
+
+
+def _food_reason(
+    order_count: int,
+    limited_history_orders: int,
+    source: str,
+    cuisine_fit: float,
+    association_strength: float,
+    quality_score: float,
+    repeat_item: bool,
+    history_weights: dict[str, float] | None = None,
+) -> str:
+    weights = history_weights or FOOD_HISTORY_WEIGHTS
     if order_count == 0 or (order_count <= limited_history_orders and source == "cold_start" and cuisine_fit == 0 and association_strength == 0):
         return "general pick for limited history"
     contributions = {
-        "associated with a previously purchased item": FOOD_HISTORY_WEIGHTS["association"] * association_strength,
-        "frequently purchased cuisine": FOOD_HISTORY_WEIGHTS["cuisine_fit"] * cuisine_fit,
-        "highly rated in preferred cuisine": FOOD_HISTORY_WEIGHTS["quality"] * quality_score if cuisine_fit > 0 else 0.0,
+        "associated with a previously purchased item": weights["association"] * association_strength,
+        "frequently purchased cuisine": weights["cuisine_fit"] * cuisine_fit,
+        "highly rated in preferred cuisine": weights["quality"] * quality_score if cuisine_fit > 0 else 0.0,
         "previously reordered item": 0.05 if repeat_item else 0.0,
     }
     best = max(contributions, key=contributions.get)
