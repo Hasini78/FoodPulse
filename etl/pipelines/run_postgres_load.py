@@ -106,7 +106,7 @@ def _open_session():
     if str(BACKEND) not in sys.path:
         sys.path.insert(0, str(BACKEND))
     from app.db.session import Base
-    from app.models import Customer, Location, Order, Restaurant, Review  # noqa: F401
+    from app.models import Customer, FoodItem, Location, Order, OrderItem, Restaurant, Review  # noqa: F401
 
     # Creates missing tables from the existing ORM models. Never drops or truncates.
     Base.metadata.create_all(bind=engine)
@@ -117,16 +117,19 @@ def _models() -> dict[str, type]:
     if str(BACKEND) not in sys.path:
         sys.path.insert(0, str(BACKEND))
     from app.models.customer import Customer
+    from app.models.food import FoodItem
     from app.models.location import Location
-    from app.models.order import Order
+    from app.models.order import Order, OrderItem
     from app.models.restaurant import Restaurant
     from app.models.review import Review
 
     return {
         "Location": Location,
         "Restaurant": Restaurant,
+        "FoodItem": FoodItem,
         "Customer": Customer,
         "Order": Order,
+        "OrderItem": OrderItem,
         "Review": Review,
     }
 

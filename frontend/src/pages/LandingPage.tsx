@@ -9,7 +9,7 @@ const modules: Array<{ icon: IconName; title: string; text: string; to: string }
   { icon: 'users', title: 'Customer segments', text: 'Clusters of guests grouped by how often they order, how much they spend and how recently they came.', to: '/app/segments' },
   { icon: 'alert', title: 'Churn risk', text: 'Customers who have gone quiet, ranked with the reasons behind each score.', to: '/app/churn' },
   { icon: 'basket', title: 'Menu pairings', text: 'Dishes that are ordered together, with support, confidence and lift for each pair.', to: '/app/recommendations' },
-  { icon: 'sparkles', title: 'Recommendations', text: 'Restaurants and dishes suggested to each customer, each with the reason it was chosen.', to: '/app/recommendations' },
+  { icon: 'sparkles', title: 'Sample recommendations', text: 'Restaurants and dishes suggested to each sample customer, each with the reason and method that produced it.', to: '/app/recommendations' },
   { icon: 'trending', title: 'Demand forecast', text: 'Expected orders for the days ahead, shown next to what actually happened.', to: '/app/forecast' },
 ]
 

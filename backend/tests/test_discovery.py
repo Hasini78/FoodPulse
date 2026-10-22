@@ -203,6 +203,10 @@ def test_association_respects_evidence_and_is_not_causation(tmp_path: Path, monk
     assert [item["id"] for item in together] == ["11"]
     assert "Often bought with Pad Thai" in together[0]["reason"]
     assert "not causation" in together[0]["reason"]
+    assert together[0]["lift"] == pytest.approx(3.0)
+    assert together[0]["confidence"] == pytest.approx(0.6)
+    assert together[0]["support_count"] == 20
+    assert together[0]["support"] == pytest.approx(0.05)
     weak = discovery_service.discovery("1", min_support_count=100)
     assert _section(weak, "frequently_bought_together")["items"] == []
 
@@ -432,6 +436,40 @@ def test_missing_source_empty_kind(tmp_path: Path, monkeypatch: pytest.MonkeyPat
     assert "unavailable" in picked["empty_message"].lower()
 
 
+def test_cuisine_filter_miss_keeps_unfiltered_context(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _world(tmp_path, monkeypatch)
+    payload = discovery_service.discovery("1", cuisine="Indian")
+    picked = _section(payload, "picked_for_you")
+    assert [item["id"] for item in picked["items"]] == ["21"]
+    assert picked["scope"] == "personalized"
+    assert picked["fallback_kind"] is None
+    similar = _section(payload, "similar_to_what_you_like")
+    assert similar["items"]
+    assert similar["scope"] == "cuisine_catalog"
+    assert similar["fallback_kind"] == "cuisine_catalog"
+    assert all(item["cuisine"] == "Indian" for item in similar["items"])
+    assert all(item["fallback"] is True for item in similar["items"])
+    assert all(item.get("lift") is None for item in similar["items"])
+    assert "not a stored personal" in similar["description"].lower() or "not this customer" in similar["description"].lower()
+    assert similar["unfiltered_count"] > 0
+    assert "Thai" in similar["available_cuisines"]
+    together = _section(payload, "frequently_bought_together")
+    assert together["items"] == []
+    assert together["empty_kind"] == "filter_miss"
+    assert together["scope"] == "association"
+    popular_foods = [item for item in _section(payload, "popular_choices")["items"] if item["kind"] == "food"]
+    assert popular_foods
+    assert all(item["cuisine"] == "Indian" for item in popular_foods)
+    missing = discovery_service.discovery("1", cuisine="French")
+    popular = _section(missing, "popular_choices")
+    assert popular["items"] == []
+    assert popular["empty_kind"] == "filter_miss"
+    assert popular["unfiltered_count"] > 0
+    similar_missing = _section(missing, "similar_to_what_you_like")
+    assert similar_missing["items"] == []
+    assert similar_missing["empty_kind"] == "filter_miss"
+
+
 def test_discovery_http_accepts_cuisine_query(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
     _world(tmp_path, monkeypatch)
     from app.main import app
@@ -442,3 +480,63 @@ def test_discovery_http_accepts_cuisine_query(tmp_path: Path, monkeypatch: pytes
     body = response.json()
     picked = next(section for section in body["sections"] if section["id"] == "picked_for_you")["items"]
     assert [item["id"] for item in picked] == ["21"]
+
+
+def test_catalog_fallback_is_not_labelled_personalized(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _world(tmp_path, monkeypatch)
+    payload = discovery_service.discovery("1", cuisine="Indian")
+    similar = _section(payload, "similar_to_what_you_like")
+    assert similar["explanation"]["fallback"] is True
+    assert similar["explanation"]["kind"] == "cuisine_catalog"
+    assert "collaborative filtering" in similar["explanation"]["algorithm"].lower() or "not a stored personal" in similar["explanation"]["algorithm"].lower()
+    assert similar["explanation"]["data_source"]
+    restaurants = _section(payload, "restaurants_for_you")
+    assert restaurants["scope"] == "personalized"
+    assert [item["id"] for item in restaurants["items"]] == ["2"]
+    together = _section(payload, "frequently_bought_together")
+    assert together["items"] == []
+    assert together["explanation"]["kind"] == "association"
+    assert together["explanation"]["fallback"] is False
+
+
+def test_missing_stored_ranks_use_popular_fallback(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _world(tmp_path, monkeypatch)
+    payload = discovery_service.discovery("9")
+    picked = _section(payload, "picked_for_you")
+    assert picked["items"]
+    assert picked["scope"] == "global"
+    assert picked["fallback_kind"] == "cold_start"
+    assert picked["explanation"]["fallback"] is True
+    assert picked["explanation"]["kind"] == "global"
+    assert all(item["fallback"] is True for item in picked["items"])
+    assert all(item["metric"] == "completed_orders" for item in picked["items"])
+    assert all("not a stored personal" in item["reason"].lower() or "no matching stored" in item["reason"].lower() for item in picked["items"])
+    similar = _section(payload, "similar_to_what_you_like")
+    assert similar["scope"] == "cuisine_history"
+    assert similar["fallback_kind"] is None
+    restaurants = _section(payload, "restaurants_for_you")
+    assert restaurants["fallback_kind"] == "cold_start"
+    assert restaurants["scope"] == "global"
+    together = _section(payload, "frequently_bought_together")
+    assert [item["id"] for item in together["items"]] == ["21"]
+    assert together["scope"] == "association"
+    assert together["items"][0]["lift"] == pytest.approx(2.0)
+    assert together["explanation"]["fallback"] is False
+
+
+def test_association_is_never_filled_from_popularity(tmp_path: Path, monkeypatch: pytest.MonkeyPatch) -> None:
+    _world(tmp_path, monkeypatch)
+    payload = discovery_service.discovery("2", cuisine="Thai")
+    together = _section(payload, "frequently_bought_together")
+    assert together["items"] == []
+    assert together["empty_kind"] == "no_history"
+    assert together["scope"] == "association"
+    picked = _section(payload, "picked_for_you")
+    assert picked["items"]
+    assert picked["scope"] == "cuisine_catalog"
+    assert all(item["cuisine"] == "Thai" for item in picked["items"] if item["kind"] == "food")
+    assert all("not a stored personal" in item["reason"].lower() for item in picked["items"])
+    native = discovery_service.discovery("1")
+    assert _section(native, "picked_for_you")["explanation"]["kind"] == "personalized"
+    assert _section(native, "picked_for_you")["explanation"]["fallback"] is False
+    assert "not a purchase probability" in _section(native, "picked_for_you")["explanation"]["algorithm"]

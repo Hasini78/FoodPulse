@@ -10,11 +10,15 @@ It loads, in foreign-key order:
 
 1. `locations` (required parent of restaurants)
 2. `restaurants`
-3. `customers`
-4. `orders`
-5. `reviews`
+3. `food_items`
+4. `customers`
+5. `orders`
+6. `order_items`
+7. `reviews`
 
-It does not load `users`, `food_items`, `order_items`, or `customer_activity`. Those tables are outside this workflow.
+It does not load `users`, `customer_activity`, or `review_sentiment`. Staff `users` are not sample customers. Sentiment and activity stay in processed Parquet for `/analytics`.
+
+An order line is skipped when the food item's `restaurant_id` does not match the order's `restaurant_id`. Food names may repeat; uniqueness is `food_items.id`. Display collapse uses `(name, restaurant_id)` and is not a database unique constraint.
 
 Analytics stay in Parquet. Snowflake snapshot and star-schema loaders are unchanged and do not write to PostgreSQL.
 
@@ -24,8 +28,10 @@ From `data/processed/` (or `--processed-dir`):
 
 - `locations.parquet`
 - `restaurants.parquet`
+- `food_items.parquet`
 - `customers.parquet`
 - `orders.parquet`
+- `order_items.parquet`
 - `reviews.parquet`
 
 Source columns map to the SQLAlchemy fields of the same name. Extra order columns such as `is_total_outlier` and `total_amount_capped` are ignored.
@@ -71,8 +77,8 @@ Parent keys are resolved from prepared source rows in this run, not from rows th
 After a live load that you run yourself:
 
 - `GET /stats/overview`
-- `SELECT COUNT(*) FROM locations, restaurants, customers, orders, reviews;`
-- Spot-check a restaurant, customer, order, and review by primary key
+- `SELECT COUNT(*) FROM locations, restaurants, customers, orders, reviews, food_items, order_items;`
+- Spot-check a restaurant, food item, order, and order item by primary key
 
 Do not treat `/analytics/overview` as a PostgreSQL row count. That endpoint reads processed Parquet.
 

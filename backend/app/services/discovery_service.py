@@ -2,12 +2,15 @@
 
 This module never trains a model, never writes Parquet, and never connects to
 Snowflake. Ranking scores are ranking signals, not purchase probabilities.
-Association rules describe co-purchase, not causation.
+Association rules describe co-purchase, not causation. Catalog and order-history
+frames may come from PostgreSQL when FOODPULSE_DISCOVERY_OPERATIONAL_SOURCE is
+postgres; stored ranks, association, and ratings stay on Parquet.
 """
 
 from __future__ import annotations
 
 from app.services import analytics_service as analytics
+from app.services import discovery_operational
 from app.services.analytics_service import AnalyticsDataError
 
 DEFAULT_LIMIT = 8
@@ -51,6 +54,73 @@ SECTION_SOURCES = {
     "restaurants_for_you": "restaurant_recommendations.parquet",
     "explore_something_new": "orders.parquet",
 }
+SECTION_EXPLANATIONS = {
+    "picked_for_you": {
+        "algorithm": (
+            "Offline baseline ranker: cuisine fit, association, restaurant sample rating, "
+            "familiarity, and popularity. The stored score sorts the list; it is not a purchase probability."
+        ),
+        "data_source": "food_recommendations.parquet",
+        "kind": "personalized",
+        "fallback": False,
+        "reason": "Stored dish rank for this sample customer.",
+    },
+    "popular_choices": {
+        "algorithm": "Count of completed-order lines (status lowercased to completed) across every sample customer.",
+        "data_source": "orders.parquet and order_items.parquet",
+        "kind": "global",
+        "fallback": False,
+        "reason": "Sample-wide popularity, not a personal list.",
+    },
+    "similar_to_what_you_like": {
+        "algorithm": "Take this customer's most-ordered restaurant cuisine, then rank other dishes in that cuisine by completed-order volume.",
+        "data_source": "orders.parquet, order_items.parquet, restaurants.cuisine_type",
+        "kind": "cuisine_history",
+        "fallback": False,
+        "reason": "Other dishes in the cuisine this customer ordered most. Not ingredient similarity.",
+    },
+    "frequently_bought_together": {
+        "algorithm": (
+            "Stored Apriori rules kept when this customer bought the antecedent, has not bought the consequent, "
+            "and support_count, confidence, and lift meet the project thresholds. Co-purchase is not causation."
+        ),
+        "data_source": "association_rules.parquet",
+        "kind": "association",
+        "fallback": False,
+        "reason": "A later dish that appeared with something this customer already ordered.",
+    },
+    "restaurants_for_you": {
+        "algorithm": "Offline baseline restaurant ranker using cuisine fit, restaurant sample rating, familiarity, and popularity.",
+        "data_source": "restaurant_recommendations.parquet",
+        "kind": "personalized",
+        "fallback": False,
+        "reason": "Stored restaurant rank for this sample customer.",
+    },
+    "explore_something_new": {
+        "algorithm": "Completed-order volume among cuisines absent from this customer's history, excluding dishes already shown above.",
+        "data_source": "orders.parquet and the food catalog",
+        "kind": "new_cuisine",
+        "fallback": False,
+        "reason": "Popular dishes from cuisines this customer has not ordered.",
+    },
+}
+CATALOG_FALLBACK_EXPLANATION = {
+    "algorithm": (
+        "Completed-order volume among catalog dishes or restaurants that match the selected cuisine or category. "
+        "This is not a stored personal rank, not collaborative filtering, and not an association rule."
+    ),
+    "data_source": "orders.parquet, order_items.parquet, and the food catalog",
+    "kind": "cuisine_catalog",
+    "fallback": True,
+    "reason": "Stored suggestions did not match the filter, so matching catalog items are shown by sample popularity.",
+}
+COLD_START_EXPLANATION = {
+    "algorithm": "Completed-order volume across the sample because this customer has no matching stored rank.",
+    "data_source": "orders.parquet and order_items.parquet",
+    "kind": "global",
+    "fallback": True,
+    "reason": "No stored personal rank was available, so popular sample items are shown instead.",
+}
 MISSING_EMPTY = {
     "picked_for_you": "Stored food recommendations are unavailable, so this personalized row cannot be built.",
     "popular_choices": "Completed-order files are unavailable, so global popularity cannot be ranked.",
@@ -79,21 +149,85 @@ def discovery(
     cuisine_filter = _filter_value(cuisine)
     category_filter = _filter_value(category)
     unavailable: list[str] = []
+    discovery_operational.reset_frames()
+    try:
+        payload = _discovery_payload(
+            identifier,
+            limit,
+            min_support_count,
+            min_confidence,
+            min_lift,
+            cuisine_filter,
+            category_filter,
+            unavailable,
+        )
+    finally:
+        discovery_operational.reset_frames()
+    return payload
+
+
+def _discovery_payload(
+    identifier: str,
+    limit: int,
+    min_support_count: int,
+    min_confidence: float,
+    min_lift: float,
+    cuisine_filter: str | None,
+    category_filter: str | None,
+    unavailable: list[str],
+) -> dict[str, object]:
     catalog = _catalog(unavailable)
     history = _history(identifier, catalog, unavailable)
-    picked = _picked_for_you(identifier, catalog, history, limit, unavailable, cuisine_filter, category_filter)
+    picked_native = _picked_for_you(identifier, catalog, history, limit, unavailable, cuisine_filter, category_filter)
+    picked, picked_fallback = _maybe_food_catalog_fallback(
+        picked_native,
+        catalog,
+        limit,
+        cuisine_filter,
+        category_filter,
+        role="picked",
+        allow_unfiltered=True,
+    )
     popular_foods, popular_restaurants = _popular(catalog, limit, unavailable, cuisine_filter, category_filter)
-    similar = _similar(catalog, history, picked, limit, cuisine_filter, category_filter)
+    similar_native = _similar(catalog, history, picked_native, limit, cuisine_filter, category_filter)
+    similar, similar_fallback = _maybe_food_catalog_fallback(
+        similar_native,
+        catalog,
+        limit,
+        cuisine_filter,
+        category_filter,
+        role="similar",
+        allow_unfiltered=False,
+        exclude={item["id"] for item in picked if item.get("kind") == "food"} | set(history.get("purchased_foods") or set()),
+    )
     together = _bought_together(
         identifier, catalog, history, limit, min_support_count, min_confidence, min_lift, unavailable, cuisine_filter, category_filter
     )
-    restaurants = _restaurants_for_you(identifier, catalog, history, limit, unavailable, cuisine_filter, category_filter)
+    restaurants_native = _restaurants_for_you(identifier, catalog, history, limit, unavailable, cuisine_filter, category_filter)
+    restaurants, restaurant_fallback = _maybe_restaurant_catalog_fallback(
+        restaurants_native,
+        catalog,
+        limit,
+        cuisine_filter,
+        category_filter,
+        allow_unfiltered=True,
+    )
     used_foods = {
         item["id"]
         for item in picked + popular_foods + similar + together
         if item.get("kind") == "food"
     }
-    explore = _explore(catalog, history, used_foods, limit, cuisine_filter, category_filter)
+    explore_native = _explore(catalog, history, used_foods, limit, cuisine_filter, category_filter)
+    explore, explore_fallback = _maybe_food_catalog_fallback(
+        explore_native,
+        catalog,
+        limit,
+        cuisine_filter,
+        category_filter,
+        role="explore",
+        allow_unfiltered=False,
+        exclude=used_foods | set(history.get("purchased_foods") or set()),
+    )
     sections = [
         _section(
             "picked_for_you",
@@ -150,7 +284,40 @@ def discovery(
             "new_cuisine",
         ),
     ]
+    _apply_catalog_fallback_metadata(
+        sections,
+        {
+            "picked_for_you": picked_fallback,
+            "similar_to_what_you_like": similar_fallback,
+            "restaurants_for_you": restaurant_fallback,
+            "explore_something_new": explore_fallback,
+        },
+        cuisine_filter,
+        category_filter,
+    )
     _apply_empty_kinds(sections, unavailable, history)
+    if cuisine_filter or category_filter:
+        unused: list[str] = []
+        picked_all = _picked_for_you(identifier, catalog, history, limit, unused)
+        popular_foods_all, popular_restaurants_all = _popular(catalog, limit, unused)
+        similar_all = _similar(catalog, history, picked_all, limit)
+        together_all = _bought_together(
+            identifier, catalog, history, limit, min_support_count, min_confidence, min_lift, unused
+        )
+        restaurants_all = _restaurants_for_you(identifier, catalog, history, limit, unused)
+        explore_all = _explore(catalog, history, used_foods, limit)
+        by_id = {str(section["id"]): section for section in sections}
+        _annotate_filter_context(by_id["picked_for_you"], picked_all, cuisine_filter, category_filter)
+        _annotate_filter_context(
+            by_id["popular_choices"],
+            popular_foods_all + popular_restaurants_all,
+            cuisine_filter,
+            category_filter,
+        )
+        _annotate_filter_context(by_id["similar_to_what_you_like"], similar_all, cuisine_filter, category_filter)
+        _annotate_filter_context(by_id["frequently_bought_together"], together_all, cuisine_filter, category_filter)
+        _annotate_filter_context(by_id["restaurants_for_you"], restaurants_all, cuisine_filter, category_filter)
+        _annotate_filter_context(by_id["explore_something_new"], explore_all, cuisine_filter, category_filter)
     return {
         "source": "processed_parquet",
         "customer_id": identifier,
@@ -195,6 +362,7 @@ def _section(
     empty_message: str,
     scope: str,
 ) -> dict[str, object]:
+    explanation = dict(SECTION_EXPLANATIONS.get(section_id, {}))
     return {
         "id": section_id,
         "title": title,
@@ -204,7 +372,223 @@ def _section(
         "items": items,
         "empty_message": empty_message,
         "empty_kind": None if items else "no_results",
+        "explanation": explanation,
+        "fallback_kind": None,
     }
+
+
+def _catalog_reason(cuisine: str | None, category: str | None, role: str) -> str:
+    label = " · ".join(part for part in (cuisine, category) if part)
+    if role == "picked":
+        if label:
+            return (
+                f"Popular {label} dish in completed sample orders. "
+                "This is not a stored personal suggestion for this customer."
+            )
+        return "Popular in completed sample orders because this customer has no matching stored dish rank."
+    if role == "similar":
+        if label:
+            return (
+                f"Popular {label} dish in the sample catalog. "
+                "This is not based on this customer's most-ordered cuisine."
+            )
+        return "Popular sample dish shown because no cuisine-history match was available."
+    if role == "explore":
+        if label:
+            return (
+                f"Popular {label} dish in the sample catalog. "
+                "This is not treated as a new cuisine for this customer."
+            )
+        return "Popular sample dish shown because no new-cuisine alternative remained."
+    if role == "restaurant":
+        if cuisine:
+            return (
+                f"Popular {cuisine} restaurant in completed sample orders. "
+                "This is not a stored personal restaurant rank."
+            )
+        return "Popular restaurant in completed sample orders because this customer has no matching stored restaurant rank."
+    return "Popular in completed sample orders. This is not a stored personal suggestion."
+
+
+def _volume_foods(
+    catalog: dict[str, object],
+    limit: int,
+    cuisine: str | None,
+    category: str | None,
+    reason: str,
+    fallback_kind: str,
+    exclude: set[str] | None = None,
+) -> list[dict[str, object]]:
+    counts = _completed_item_counts([])
+    foods: dict[str, dict[str, object]] = catalog["foods"]
+    skip = exclude or set()
+    ranked = sorted(
+        ((int(counts.get(food_id, 0)), food_id) for food_id in foods),
+        key=lambda item: (-item[0], item[1]),
+    )
+    cards: list[dict[str, object]] = []
+    seen_ids: set[str] = set()
+    seen_offerings: set[tuple[str, str]] = set()
+    for count, food_id in ranked:
+        if food_id in skip:
+            continue
+        if _skip_food_offering(catalog, food_id, seen_ids, seen_offerings):
+            continue
+        card = _food_card(
+            catalog,
+            food_id,
+            reason,
+            True,
+            "completed_orders",
+            float(count),
+            int(count),
+            fallback_kind,
+        )
+        if not _keep_food(card, cuisine, category):
+            continue
+        _remember_food_offering(catalog, food_id, seen_ids, seen_offerings)
+        cards.append(card)
+        if len(cards) >= limit:
+            break
+    return cards
+
+
+def _volume_restaurants(
+    catalog: dict[str, object],
+    limit: int,
+    cuisine: str | None,
+    reason: str,
+    fallback_kind: str,
+) -> list[dict[str, object]]:
+    counts = _completed_restaurant_counts([])
+    restaurants: dict[str, dict[str, object]] = catalog["restaurants"]
+    ranked = []
+    for restaurant_id, place in restaurants.items():
+        ranked.append((int(counts.get(restaurant_id, 0)), place.get("rating") or 0.0, restaurant_id))
+    ranked.sort(key=lambda item: (-item[0], -float(item[1]), item[2]))
+    cards: list[dict[str, object]] = []
+    for count, _rating, restaurant_id in ranked:
+        card = _restaurant_card(
+            catalog,
+            restaurant_id,
+            reason,
+            True,
+            "completed_orders",
+            float(count),
+            count,
+            fallback_kind,
+        )
+        if not _keep_restaurant(card, cuisine):
+            continue
+        cards.append(card)
+        if len(cards) >= limit:
+            break
+    return cards
+
+
+def _maybe_food_catalog_fallback(
+    items: list[dict[str, object]],
+    catalog: dict[str, object],
+    limit: int,
+    cuisine: str | None,
+    category: str | None,
+    *,
+    role: str,
+    allow_unfiltered: bool,
+    exclude: set[str] | None = None,
+) -> tuple[list[dict[str, object]], str | None]:
+    if items:
+        return items, None
+    if not cuisine and not category and not allow_unfiltered:
+        return items, None
+    fallback_kind = "cuisine_catalog" if cuisine or category else "cold_start"
+    filled = _volume_foods(
+        catalog,
+        limit,
+        cuisine,
+        category,
+        _catalog_reason(cuisine, category, role),
+        fallback_kind,
+        exclude,
+    )
+    if not filled:
+        return items, None
+    return filled, fallback_kind
+
+
+def _maybe_restaurant_catalog_fallback(
+    items: list[dict[str, object]],
+    catalog: dict[str, object],
+    limit: int,
+    cuisine: str | None,
+    _category: str | None,
+    *,
+    allow_unfiltered: bool,
+) -> tuple[list[dict[str, object]], str | None]:
+    if items:
+        return items, None
+    if cuisine:
+        fallback_kind = "cuisine_catalog"
+    elif allow_unfiltered:
+        fallback_kind = "cold_start"
+    else:
+        return items, None
+    filled = _volume_restaurants(
+        catalog,
+        limit,
+        cuisine,
+        _catalog_reason(cuisine, None, "restaurant"),
+        fallback_kind,
+    )
+    if not filled:
+        return items, None
+    return filled, fallback_kind
+
+
+def _apply_catalog_fallback_metadata(
+    sections: list[dict[str, object]],
+    fallbacks: dict[str, str | None],
+    cuisine: str | None,
+    category: str | None,
+) -> None:
+    label = " · ".join(part for part in (cuisine, category) if part) or "the catalog"
+    descriptions = {
+        "picked_for_you": {
+            "cuisine_catalog": (
+                f"Popular {label} dishes from completed sample orders. "
+                "These are not stored personal ranks for this customer."
+            ),
+            "cold_start": "Popular dishes across the sample. This customer has no matching stored dish rank.",
+        },
+        "similar_to_what_you_like": {
+            "cuisine_catalog": (
+                f"Popular {label} dishes from the sample catalog. "
+                "This is not this customer's most-ordered cuisine match."
+            ),
+        },
+        "restaurants_for_you": {
+            "cuisine_catalog": (
+                f"Popular {cuisine or 'matching'} restaurants from completed sample orders. "
+                "These are not stored personal restaurant ranks."
+            ),
+            "cold_start": "Popular restaurants across the sample. This customer has no matching stored restaurant rank.",
+        },
+        "explore_something_new": {
+            "cuisine_catalog": (
+                f"Popular {label} dishes from the sample catalog. "
+                "They are not treated as a new cuisine when this customer has already ordered it."
+            ),
+        },
+    }
+    for section in sections:
+        kind = fallbacks.get(str(section["id"]))
+        if not kind:
+            continue
+        section["fallback_kind"] = kind
+        section["metric"] = "completed_orders"
+        section["scope"] = "global" if kind == "cold_start" else "cuisine_catalog"
+        section["explanation"] = dict(COLD_START_EXPLANATION if kind == "cold_start" else CATALOG_FALLBACK_EXPLANATION)
+        section["description"] = descriptions.get(str(section["id"]), {}).get(kind, section["description"])
 
 
 def _apply_empty_kinds(
@@ -231,12 +615,51 @@ def _apply_empty_kinds(
             section["empty_kind"] = "no_results"
 
 
+def _available_cuisines(items: list[dict[str, object]]) -> list[str]:
+    names: list[str] = []
+    seen: set[str] = set()
+    for item in items:
+        cuisine = item.get("cuisine")
+        if cuisine is None or analytics._missing(cuisine):
+            continue
+        key = _norm(cuisine)
+        if not key or key in seen:
+            continue
+        seen.add(key)
+        names.append(str(cuisine))
+    names.sort()
+    return names
+
+
+def _annotate_filter_context(
+    section: dict[str, object],
+    unfiltered: list[dict[str, object]],
+    cuisine: str | None,
+    category: str | None,
+) -> None:
+    """Attach unfiltered context. Does not change ranked items or scores."""
+    section["unfiltered_count"] = len(unfiltered)
+    section["available_cuisines"] = _available_cuisines(unfiltered)
+    if section.get("items"):
+        return
+    if section.get("empty_kind") in {"missing_data", "no_history"}:
+        return
+    if unfiltered and (cuisine or category):
+        section["empty_kind"] = "filter_miss"
+
+
 def _catalog(unavailable: list[str]) -> dict[str, object]:
-    foods = _optional("food_items.parquet", ["id", "restaurant_id", "name", "category", "price"], unavailable)
-    restaurants = _optional("restaurants.parquet", ["id", "name", "cuisine_type", "location_id"], unavailable)
+    frames = discovery_operational.operational_frames()
+    if frames is None:
+        foods = _optional("food_items.parquet", ["id", "restaurant_id", "name", "category", "price"], unavailable)
+        restaurants = _optional("restaurants.parquet", ["id", "name", "cuisine_type", "location_id"], unavailable)
+        locations = _optional("locations.parquet", ["id", "city"], unavailable)
+    else:
+        foods = frames["foods"]
+        restaurants = frames["restaurants"]
+        locations = frames["locations"]
     features = _optional("restaurant_features.parquet", ["restaurant_id", "avg_rating", "review_volume", "order_volume"], unavailable)
     sentiment = _optional("sentiment_by_restaurant.parquet", ["restaurant_id", "review_count", "positive_count", "mean_score"], unavailable)
-    locations = _optional("locations.parquet", ["id", "city"], unavailable)
     food_map: dict[str, dict[str, object]] = {}
     restaurant_map: dict[str, dict[str, object]] = {}
     city_map = {str(row["id"]): None if analytics._missing(row.get("city")) else str(row["city"]) for row in locations.to_dict("records")} if not locations.empty else {}
@@ -292,8 +715,13 @@ def _catalog(unavailable: list[str]) -> dict[str, object]:
 
 
 def _history(customer_id: str, catalog: dict[str, object], unavailable: list[str]) -> dict[str, object]:
-    orders = _optional("orders.parquet", ["id", "customer_id", "restaurant_id", "status"], unavailable)
-    items = _optional("order_items.parquet", ["order_id", "food_item_id"], unavailable)
+    frames = discovery_operational.operational_frames()
+    if frames is None:
+        orders = _optional("orders.parquet", ["id", "customer_id", "restaurant_id", "status"], unavailable)
+        items = _optional("order_items.parquet", ["order_id", "food_item_id"], unavailable)
+    else:
+        orders = frames["orders"]
+        items = frames["items"]
     if orders.empty:
         return _empty_history(customer_id)
     completed = analytics._completed(orders)
@@ -376,8 +804,10 @@ def _picked_for_you(
         if _skip_food_offering(catalog, food_id, seen_ids, seen_offerings):
             continue
         reason, fallback = plain_reason(record.get("reason"), "food")
+        fallback_kind = None
         if history["summary"]["thin_history"]:
             fallback = True
+            fallback_kind = "thin_history"
             if record.get("reason") == "general pick for limited history":
                 reason = FOOD_REASON_COPY["general pick for limited history"]
             else:
@@ -390,6 +820,7 @@ def _picked_for_you(
             "stored_rank",
             analytics._json_value(record.get("recommendation_score")),
             analytics._json_value(record.get("rank")),
+            fallback_kind,
         )
         if not _keep_food(card, cuisine, category):
             continue
@@ -560,6 +991,10 @@ def _bought_together(
             analytics._json_value(record.get("lift")),
             analytics._json_value(record.get("support_count")),
         )
+        card["lift"] = analytics._json_value(record.get("lift"))
+        card["confidence"] = analytics._json_value(record.get("confidence"))
+        card["support"] = analytics._json_value(record.get("support"))
+        card["support_count"] = analytics._json_value(record.get("support_count"))
         if not _keep_food(card, cuisine, category):
             continue
         _remember_food_offering(catalog, consequent, seen, seen_offerings)
@@ -594,8 +1029,10 @@ def _restaurants_for_you(
             continue
         seen.add(restaurant_id)
         reason, fallback = plain_reason(record.get("reason"), "restaurant")
+        fallback_kind = None
         if history["summary"]["thin_history"]:
             fallback = True
+            fallback_kind = "thin_history"
         card = _restaurant_card(
             catalog,
             restaurant_id,
@@ -604,6 +1041,7 @@ def _restaurants_for_you(
             "stored_rank",
             analytics._json_value(record.get("recommendation_score")),
             analytics._json_value(record.get("rank")),
+            fallback_kind,
         )
         if not _keep_restaurant(card, cuisine):
             continue
@@ -663,6 +1101,7 @@ def _food_card(
     metric: str,
     score: object,
     evidence: object,
+    fallback_kind: str | None = None,
 ) -> dict[str, object]:
     item = catalog["foods"].get(food_id, {"id": food_id})
     return {
@@ -682,6 +1121,7 @@ def _food_card(
         "image_url": None,
         "reason": reason,
         "fallback": fallback,
+        "fallback_kind": fallback_kind,
         "metric": metric,
         "score": analytics._json_value(score),
         "evidence": analytics._json_value(evidence),
@@ -696,6 +1136,7 @@ def _restaurant_card(
     metric: str,
     score: object,
     evidence: object,
+    fallback_kind: str | None = None,
 ) -> dict[str, object]:
     place = catalog["restaurants"].get(restaurant_id, {"id": restaurant_id})
     return {
@@ -715,6 +1156,7 @@ def _restaurant_card(
         "image_url": None,
         "reason": reason,
         "fallback": fallback,
+        "fallback_kind": fallback_kind,
         "metric": metric,
         "score": analytics._json_value(score),
         "evidence": analytics._json_value(evidence),
@@ -722,8 +1164,13 @@ def _restaurant_card(
 
 
 def _completed_item_counts(unavailable: list[str]) -> dict[str, int]:
-    orders = _optional("orders.parquet", ["id", "status"], unavailable)
-    items = _optional("order_items.parquet", ["order_id", "food_item_id"], unavailable)
+    frames = discovery_operational.operational_frames()
+    if frames is None:
+        orders = _optional("orders.parquet", ["id", "status"], unavailable)
+        items = _optional("order_items.parquet", ["order_id", "food_item_id"], unavailable)
+    else:
+        orders = frames["orders"]
+        items = frames["items"]
     if orders.empty or items.empty:
         return {}
     completed_ids = set(analytics._completed(orders)["id"].map(_token))
@@ -736,7 +1183,11 @@ def _completed_item_counts(unavailable: list[str]) -> dict[str, int]:
 
 
 def _completed_restaurant_counts(unavailable: list[str]) -> dict[str, int]:
-    orders = _optional("orders.parquet", ["id", "status", "restaurant_id"], unavailable)
+    frames = discovery_operational.operational_frames()
+    if frames is None:
+        orders = _optional("orders.parquet", ["id", "status", "restaurant_id"], unavailable)
+    else:
+        orders = frames["orders"]
     if orders.empty:
         return {}
     counts: dict[str, int] = {}

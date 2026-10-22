@@ -2,35 +2,8 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { Link, NavLink, Navigate, Outlet, useLocation, useNavigate } from 'react-router-dom'
 
 import { Icon, Logo } from '../components/Icons'
-import type { IconName } from '../components/Icons'
 import { authRequired, getToken, signOut } from '../lib/auth'
-
-type NavItem = { to: string; label: string; icon: IconName; end?: boolean }
-
-const groups: Array<{ title: string; items: NavItem[] }> = [
-  {
-    title: 'Overview',
-    items: [
-      { to: '/app', label: 'Dashboard', icon: 'dashboard', end: true },
-      { to: '/app/restaurants', label: 'Restaurants', icon: 'store' },
-      { to: '/app/nearby', label: 'Nearby', icon: 'mapPin' },
-      { to: '/app/customers', label: 'Customers', icon: 'user' },
-    ],
-  },
-  {
-    title: 'Intelligence',
-    items: [
-      { to: '/app/sentiment', label: 'Sentiment', icon: 'message' },
-      { to: '/app/segments', label: 'Segments', icon: 'users' },
-      { to: '/app/churn', label: 'Churn risk', icon: 'alert' },
-      { to: '/app/recommendations', label: 'Recommendations', icon: 'sparkles' },
-      { to: '/app/forecast', label: 'Forecast', icon: 'trending' },
-      { to: '/app/insights', label: 'Insights', icon: 'lightbulb' },
-    ],
-  },
-]
-
-const allItems = groups.flatMap((group) => group.items)
+import { NAV_GROUPS, NAV_ITEMS, matchesNavQuery, pageTitle, type NavItem } from '../lib/nav'
 
 function SidebarLink({ item, onNavigate }: { item: NavItem; onNavigate: () => void }) {
   return (
@@ -40,7 +13,7 @@ function SidebarLink({ item, onNavigate }: { item: NavItem; onNavigate: () => vo
       onClick={onNavigate}
       className={({ isActive }) =>
         [
-          'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors',
+          'group flex items-center gap-3 rounded-xl px-3 py-2.5 text-sm font-semibold transition-colors focus-visible:outline-none',
           isActive ? 'bg-brand-soft text-brand-strong' : 'text-ink-2 hover:bg-canvas hover:text-ink',
         ].join(' ')
       }
@@ -56,10 +29,7 @@ function PageSearch() {
   const [query, setQuery] = useState('')
   const [open, setOpen] = useState(false)
   const input = useRef<HTMLInputElement>(null)
-  const matches = useMemo(() => {
-    const value = query.trim().toLowerCase()
-    return value ? allItems.filter((item) => item.label.toLowerCase().includes(value)) : allItems
-  }, [query])
+  const matches = useMemo(() => NAV_ITEMS.filter((item) => matchesNavQuery(item, query)), [query])
 
   useEffect(() => {
     function onKey(event: KeyboardEvent) {
@@ -105,7 +75,7 @@ function PageSearch() {
           {matches.length ? (
             matches.map((item) => (
               <li key={item.to}>
-                <button type="button" onMouseDown={() => go(item)} className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-medium text-ink-2 hover:bg-brand-soft hover:text-brand-strong">
+                <button type="button" onMouseDown={() => go(item)} className="flex w-full items-center gap-3 rounded-xl px-3 py-2 text-left text-sm font-medium text-ink-2 hover:bg-brand-soft hover:text-brand-strong focus-visible:outline-none">
                   <Icon name={item.icon} size={17} />
                   {item.label}
                 </button>
@@ -124,12 +94,12 @@ export function AppLayout() {
   const location = useLocation()
   const [drawer, setDrawer] = useState(false)
   const signedIn = Boolean(getToken())
-  const current = allItems.find((item) => (item.end ? location.pathname === item.to : location.pathname.startsWith(item.to)))
+  const title = pageTitle(location.pathname)
   const today = new Intl.DateTimeFormat('en-IN', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' }).format(new Date())
 
   useEffect(() => {
-    document.title = current ? `${current.label} · FoodPulse` : 'FoodPulse'
-  }, [current])
+    document.title = `${title} · FoodPulse`
+  }, [title])
 
   if (authRequired && !signedIn) return <Navigate to="/login" replace />
 
@@ -143,8 +113,8 @@ export function AppLayout() {
           <Icon name="close" size={20} />
         </button>
       </div>
-      <nav className="flex-1 space-y-6 overflow-y-auto px-3 pb-4" aria-label="Dashboard">
-        {groups.map((group) => (
+      <nav className="flex-1 space-y-6 overflow-y-auto px-3 pb-4" aria-label="App">
+        {NAV_GROUPS.map((group) => (
           <div key={group.title}>
             <p className="px-3 pb-2 text-xs font-semibold text-ink-3">{group.title}</p>
             <div className="space-y-1">

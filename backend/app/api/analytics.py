@@ -1,8 +1,9 @@
 """Read-only dashboard endpoints over processed Parquet files."""
 
 from fastapi import APIRouter, HTTPException, Query
+from pydantic import BaseModel
 
-from app.services import analytics_service, discovery_service
+from app.services import analytics_service, discovery_service, menu_inspect_service
 from app.services.analytics_service import AnalyticsDataError
 
 router = APIRouter(prefix="/analytics", tags=["analytics"])
@@ -135,6 +136,17 @@ def get_association(
 def get_forecast_restaurants() -> dict:
     """Restaurant ids present in the stored forecast file."""
     return _call(analytics_service.forecast_restaurants)
+
+
+class MenuInspectRequest(BaseModel):
+    url: str | None = None
+    google_place_id: str | None = None
+
+
+@router.post("/nearby/menu-inspect")
+def inspect_nearby_menu(body: MenuInspectRequest) -> dict:
+    """Inspect a published website for JSON-LD menu items. Does not call Google Places."""
+    return menu_inspect_service.inspect_menu(url=body.url, google_place_id=body.google_place_id)
 
 
 @router.get("/forecast")

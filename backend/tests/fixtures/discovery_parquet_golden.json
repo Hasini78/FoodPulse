@@ -1,0 +1,3834 @@
+{
+  "source": "processed_parquet",
+  "request": {
+    "limit": 8,
+    "min_support_count": 14,
+    "min_confidence": 0.3,
+    "min_lift": 1.0
+  },
+  "cases": [
+    {
+      "id": "customer-1-cuisine-none-category-none",
+      "snapshot": {
+        "source": "processed_parquet",
+        "customer_id": "1",
+        "unavailable": [],
+        "history": {
+          "completed_orders": 9,
+          "distinct_foods": 29,
+          "cuisines": [
+            "American",
+            "Chinese",
+            "Indian",
+            "Japanese",
+            "Thai",
+            "Vietnamese"
+          ],
+          "thin_history": false,
+          "primary_cuisine": "Japanese"
+        },
+        "applied": {
+          "cuisine": null,
+          "category": null
+        },
+        "persistence": {
+          "save": false,
+          "like": false,
+          "dislike": false
+        },
+        "sections": [
+          {
+            "id": "picked_for_you",
+            "scope": "personalized",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "stored recommendation rank",
+            "explanation_kind": "personalized",
+            "explanation_fallback": false,
+            "item_ids": [
+              "321",
+              "363",
+              "375",
+              "371"
+            ],
+            "first_item_reason": "Often bought with something you already ordered",
+            "items": [
+              {
+                "id": "321",
+                "kind": "food"
+              },
+              {
+                "id": "363",
+                "kind": "food"
+              },
+              {
+                "id": "375",
+                "kind": "food"
+              },
+              {
+                "id": "371",
+                "kind": "food"
+              }
+            ],
+            "unfiltered_count": null,
+            "available_cuisines": null
+          },
+          {
+            "id": "popular_choices",
+            "scope": "global",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "global",
+            "explanation_fallback": false,
+            "item_ids": [
+              "113",
+              "328",
+              "334",
+              "566",
+              "323",
+              "329",
+              "424",
+              "527",
+              "16",
+              "7",
+              "45",
+              "1",
+              "44",
+              "28",
+              "34",
+              "17"
+            ],
+            "first_item_reason": "Popular across all customers in the completed-order data",
+            "items": [
+              {
+                "id": "113",
+                "kind": "food"
+              },
+              {
+                "id": "328",
+                "kind": "food"
+              },
+              {
+                "id": "334",
+                "kind": "food"
+              },
+              {
+                "id": "566",
+                "kind": "food"
+              },
+              {
+                "id": "323",
+                "kind": "food"
+              },
+              {
+                "id": "329",
+                "kind": "food"
+              },
+              {
+                "id": "424",
+                "kind": "food"
+              },
+              {
+                "id": "527",
+                "kind": "food"
+              },
+              {
+                "id": "16",
+                "kind": "restaurant"
+              },
+              {
+                "id": "7",
+                "kind": "restaurant"
+              },
+              {
+                "id": "45",
+                "kind": "restaurant"
+              },
+              {
+                "id": "1",
+                "kind": "restaurant"
+              },
+              {
+                "id": "44",
+                "kind": "restaurant"
+              },
+              {
+                "id": "28",
+                "kind": "restaurant"
+              },
+              {
+                "id": "34",
+                "kind": "restaurant"
+              },
+              {
+                "id": "17",
+                "kind": "restaurant"
+              }
+            ],
+            "unfiltered_count": null,
+            "available_cuisines": null
+          },
+          {
+            "id": "similar_to_what_you_like",
+            "scope": "cuisine_history",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "cuisine match plus completed-order volume",
+            "explanation_kind": "cuisine_history",
+            "explanation_fallback": false,
+            "item_ids": [
+              "424",
+              "430",
+              "423",
+              "555",
+              "554",
+              "374",
+              "559",
+              "422"
+            ],
+            "first_item_reason": "Based on your Japanese orders",
+            "items": [
+              {
+                "id": "424",
+                "kind": "food"
+              },
+              {
+                "id": "430",
+                "kind": "food"
+              },
+              {
+                "id": "423",
+                "kind": "food"
+              },
+              {
+                "id": "555",
+                "kind": "food"
+              },
+              {
+                "id": "554",
+                "kind": "food"
+              },
+              {
+                "id": "374",
+                "kind": "food"
+              },
+              {
+                "id": "559",
+                "kind": "food"
+              },
+              {
+                "id": "422",
+                "kind": "food"
+              }
+            ],
+            "unfiltered_count": null,
+            "available_cuisines": null
+          },
+          {
+            "id": "frequently_bought_together",
+            "scope": "association",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "lift, confidence, and support_count",
+            "explanation_kind": "association",
+            "explanation_fallback": false,
+            "item_ids": [
+              "321"
+            ],
+            "first_item_reason": "Often bought with Chocolate Shake. Association is not causation.",
+            "items": [
+              {
+                "id": "321",
+                "kind": "food",
+                "lift": 69.04388714733543,
+                "confidence": 0.5172413793103449,
+                "support": 0.00340522133938706,
+                "support_count": 15
+              }
+            ],
+            "unfiltered_count": null,
+            "available_cuisines": null
+          },
+          {
+            "id": "restaurants_for_you",
+            "scope": "personalized",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "stored recommendation rank",
+            "explanation_kind": "personalized",
+            "explanation_fallback": false,
+            "item_ids": [
+              "48",
+              "6",
+              "37"
+            ],
+            "first_item_reason": "High restaurant-level sample rating in a cuisine you already order",
+            "items": [
+              {
+                "id": "48",
+                "kind": "restaurant"
+              },
+              {
+                "id": "6",
+                "kind": "restaurant"
+              },
+              {
+                "id": "37",
+                "kind": "restaurant"
+              }
+            ],
+            "unfiltered_count": null,
+            "available_cuisines": null
+          },
+          {
+            "id": "explore_something_new",
+            "scope": "new_cuisine",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "completed_orders among unseen cuisines",
+            "explanation_kind": "new_cuisine",
+            "explanation_fallback": false,
+            "item_ids": [
+              "201",
+              "197",
+              "203",
+              "332",
+              "195",
+              "331",
+              "338",
+              "330"
+            ],
+            "first_item_reason": "An Italian dish that is not in your recent orders",
+            "items": [
+              {
+                "id": "201",
+                "kind": "food"
+              },
+              {
+                "id": "197",
+                "kind": "food"
+              },
+              {
+                "id": "203",
+                "kind": "food"
+              },
+              {
+                "id": "332",
+                "kind": "food"
+              },
+              {
+                "id": "195",
+                "kind": "food"
+              },
+              {
+                "id": "331",
+                "kind": "food"
+              },
+              {
+                "id": "338",
+                "kind": "food"
+              },
+              {
+                "id": "330",
+                "kind": "food"
+              }
+            ],
+            "unfiltered_count": null,
+            "available_cuisines": null
+          }
+        ],
+        "request": {
+          "customer_id": "1",
+          "cuisine": null,
+          "category": null,
+          "limit": 8,
+          "min_support_count": 14,
+          "min_confidence": 0.3,
+          "min_lift": 1.0
+        }
+      }
+    },
+    {
+      "id": "customer-1-cuisine-Indian-category-none",
+      "snapshot": {
+        "source": "processed_parquet",
+        "customer_id": "1",
+        "unavailable": [],
+        "history": {
+          "completed_orders": 9,
+          "distinct_foods": 29,
+          "cuisines": [
+            "American",
+            "Chinese",
+            "Indian",
+            "Japanese",
+            "Thai",
+            "Vietnamese"
+          ],
+          "thin_history": false,
+          "primary_cuisine": "Japanese"
+        },
+        "applied": {
+          "cuisine": "Indian",
+          "category": null
+        },
+        "persistence": {
+          "save": false,
+          "like": false,
+          "dislike": false
+        },
+        "sections": [
+          {
+            "id": "picked_for_you",
+            "scope": "cuisine_catalog",
+            "fallback_kind": "cuisine_catalog",
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "cuisine_catalog",
+            "explanation_fallback": true,
+            "item_ids": [
+              "113",
+              "548",
+              "550",
+              "549",
+              "114",
+              "116",
+              "118",
+              "551"
+            ],
+            "first_item_reason": "Popular Indian dish in completed sample orders. This is not a stored personal suggestion for this customer.",
+            "items": [
+              {
+                "id": "113",
+                "kind": "food"
+              },
+              {
+                "id": "548",
+                "kind": "food"
+              },
+              {
+                "id": "550",
+                "kind": "food"
+              },
+              {
+                "id": "549",
+                "kind": "food"
+              },
+              {
+                "id": "114",
+                "kind": "food"
+              },
+              {
+                "id": "116",
+                "kind": "food"
+              },
+              {
+                "id": "118",
+                "kind": "food"
+              },
+              {
+                "id": "551",
+                "kind": "food"
+              }
+            ],
+            "unfiltered_count": 4,
+            "available_cuisines": [
+              "American",
+              "Japanese"
+            ]
+          },
+          {
+            "id": "popular_choices",
+            "scope": "global",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "global",
+            "explanation_fallback": false,
+            "item_ids": [
+              "113",
+              "548",
+              "550",
+              "549",
+              "114",
+              "116",
+              "118",
+              "551",
+              "26",
+              "47",
+              "10",
+              "36",
+              "46",
+              "3"
+            ],
+            "first_item_reason": "Popular across all customers in the completed-order data",
+            "items": [
+              {
+                "id": "113",
+                "kind": "food"
+              },
+              {
+                "id": "548",
+                "kind": "food"
+              },
+              {
+                "id": "550",
+                "kind": "food"
+              },
+              {
+                "id": "549",
+                "kind": "food"
+              },
+              {
+                "id": "114",
+                "kind": "food"
+              },
+              {
+                "id": "116",
+                "kind": "food"
+              },
+              {
+                "id": "118",
+                "kind": "food"
+              },
+              {
+                "id": "551",
+                "kind": "food"
+              },
+              {
+                "id": "26",
+                "kind": "restaurant"
+              },
+              {
+                "id": "47",
+                "kind": "restaurant"
+              },
+              {
+                "id": "10",
+                "kind": "restaurant"
+              },
+              {
+                "id": "36",
+                "kind": "restaurant"
+              },
+              {
+                "id": "46",
+                "kind": "restaurant"
+              },
+              {
+                "id": "3",
+                "kind": "restaurant"
+              }
+            ],
+            "unfiltered_count": 16,
+            "available_cuisines": [
+              "Indian",
+              "Italian",
+              "Japanese",
+              "Korean",
+              "Mexican",
+              "Thai",
+              "Vietnamese"
+            ]
+          },
+          {
+            "id": "similar_to_what_you_like",
+            "scope": "cuisine_catalog",
+            "fallback_kind": "cuisine_catalog",
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "cuisine_catalog",
+            "explanation_fallback": true,
+            "item_ids": [
+              "117",
+              "545",
+              "119",
+              "418",
+              "413",
+              "120",
+              "421",
+              "539"
+            ],
+            "first_item_reason": "Popular Indian dish in the sample catalog. This is not based on this customer's most-ordered cuisine.",
+            "items": [
+              {
+                "id": "117",
+                "kind": "food"
+              },
+              {
+                "id": "545",
+                "kind": "food"
+              },
+              {
+                "id": "119",
+                "kind": "food"
+              },
+              {
+                "id": "418",
+                "kind": "food"
+              },
+              {
+                "id": "413",
+                "kind": "food"
+              },
+              {
+                "id": "120",
+                "kind": "food"
+              },
+              {
+                "id": "421",
+                "kind": "food"
+              },
+              {
+                "id": "539",
+                "kind": "food"
+              }
+            ],
+            "unfiltered_count": 8,
+            "available_cuisines": [
+              "Japanese"
+            ]
+          },
+          {
+            "id": "frequently_bought_together",
+            "scope": "association",
+            "fallback_kind": null,
+            "empty_kind": "filter_miss",
+            "metric": "lift, confidence, and support_count",
+            "explanation_kind": "association",
+            "explanation_fallback": false,
+            "item_ids": [],
+            "first_item_reason": null,
+            "items": [],
+            "unfiltered_count": 1,
+            "available_cuisines": [
+              "American"
+            ]
+          },
+          {
+            "id": "restaurants_for_you",
+            "scope": "cuisine_catalog",
+            "fallback_kind": "cuisine_catalog",
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "cuisine_catalog",
+            "explanation_fallback": true,
+            "item_ids": [
+              "26",
+              "47",
+              "10",
+              "36",
+              "46",
+              "3"
+            ],
+            "first_item_reason": "Popular Indian restaurant in completed sample orders. This is not a stored personal restaurant rank.",
+            "items": [
+              {
+                "id": "26",
+                "kind": "restaurant"
+              },
+              {
+                "id": "47",
+                "kind": "restaurant"
+              },
+              {
+                "id": "10",
+                "kind": "restaurant"
+              },
+              {
+                "id": "36",
+                "kind": "restaurant"
+              },
+              {
+                "id": "46",
+                "kind": "restaurant"
+              },
+              {
+                "id": "3",
+                "kind": "restaurant"
+              }
+            ],
+            "unfiltered_count": 3,
+            "available_cuisines": [
+              "Japanese"
+            ]
+          },
+          {
+            "id": "explore_something_new",
+            "scope": "cuisine_catalog",
+            "fallback_kind": "cuisine_catalog",
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "cuisine_catalog",
+            "explanation_fallback": true,
+            "item_ids": [
+              "115",
+              "420",
+              "547",
+              "300",
+              "415",
+              "540",
+              "310",
+              "414"
+            ],
+            "first_item_reason": "Popular Indian dish in the sample catalog. This is not treated as a new cuisine for this customer.",
+            "items": [
+              {
+                "id": "115",
+                "kind": "food"
+              },
+              {
+                "id": "420",
+                "kind": "food"
+              },
+              {
+                "id": "547",
+                "kind": "food"
+              },
+              {
+                "id": "300",
+                "kind": "food"
+              },
+              {
+                "id": "415",
+                "kind": "food"
+              },
+              {
+                "id": "540",
+                "kind": "food"
+              },
+              {
+                "id": "310",
+                "kind": "food"
+              },
+              {
+                "id": "414",
+                "kind": "food"
+              }
+            ],
+            "unfiltered_count": 8,
+            "available_cuisines": [
+              "Italian",
+              "Korean"
+            ]
+          }
+        ],
+        "request": {
+          "customer_id": "1",
+          "cuisine": "Indian",
+          "category": null,
+          "limit": 8,
+          "min_support_count": 14,
+          "min_confidence": 0.3,
+          "min_lift": 1.0
+        }
+      }
+    },
+    {
+      "id": "customer-1-cuisine-Indian-category-Side",
+      "snapshot": {
+        "source": "processed_parquet",
+        "customer_id": "1",
+        "unavailable": [],
+        "history": {
+          "completed_orders": 9,
+          "distinct_foods": 29,
+          "cuisines": [
+            "American",
+            "Chinese",
+            "Indian",
+            "Japanese",
+            "Thai",
+            "Vietnamese"
+          ],
+          "thin_history": false,
+          "primary_cuisine": "Japanese"
+        },
+        "applied": {
+          "cuisine": "Indian",
+          "category": "Side"
+        },
+        "persistence": {
+          "save": false,
+          "like": false,
+          "dislike": false
+        },
+        "sections": [
+          {
+            "id": "picked_for_you",
+            "scope": "personalized",
+            "fallback_kind": null,
+            "empty_kind": "filter_miss",
+            "metric": "stored recommendation rank",
+            "explanation_kind": "personalized",
+            "explanation_fallback": false,
+            "item_ids": [],
+            "first_item_reason": null,
+            "items": [],
+            "unfiltered_count": 4,
+            "available_cuisines": [
+              "American",
+              "Japanese"
+            ]
+          },
+          {
+            "id": "popular_choices",
+            "scope": "global",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "global",
+            "explanation_fallback": false,
+            "item_ids": [
+              "26",
+              "47",
+              "10",
+              "36",
+              "46",
+              "3"
+            ],
+            "first_item_reason": "Popular across all customers in the completed-order data",
+            "items": [
+              {
+                "id": "26",
+                "kind": "restaurant"
+              },
+              {
+                "id": "47",
+                "kind": "restaurant"
+              },
+              {
+                "id": "10",
+                "kind": "restaurant"
+              },
+              {
+                "id": "36",
+                "kind": "restaurant"
+              },
+              {
+                "id": "46",
+                "kind": "restaurant"
+              },
+              {
+                "id": "3",
+                "kind": "restaurant"
+              }
+            ],
+            "unfiltered_count": 16,
+            "available_cuisines": [
+              "Indian",
+              "Italian",
+              "Japanese",
+              "Korean",
+              "Mexican",
+              "Thai",
+              "Vietnamese"
+            ]
+          },
+          {
+            "id": "similar_to_what_you_like",
+            "scope": "cuisine_history",
+            "fallback_kind": null,
+            "empty_kind": "filter_miss",
+            "metric": "cuisine match plus completed-order volume",
+            "explanation_kind": "cuisine_history",
+            "explanation_fallback": false,
+            "item_ids": [],
+            "first_item_reason": null,
+            "items": [],
+            "unfiltered_count": 8,
+            "available_cuisines": [
+              "Japanese"
+            ]
+          },
+          {
+            "id": "frequently_bought_together",
+            "scope": "association",
+            "fallback_kind": null,
+            "empty_kind": "filter_miss",
+            "metric": "lift, confidence, and support_count",
+            "explanation_kind": "association",
+            "explanation_fallback": false,
+            "item_ids": [],
+            "first_item_reason": null,
+            "items": [],
+            "unfiltered_count": 1,
+            "available_cuisines": [
+              "American"
+            ]
+          },
+          {
+            "id": "restaurants_for_you",
+            "scope": "cuisine_catalog",
+            "fallback_kind": "cuisine_catalog",
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "cuisine_catalog",
+            "explanation_fallback": true,
+            "item_ids": [
+              "26",
+              "47",
+              "10",
+              "36",
+              "46",
+              "3"
+            ],
+            "first_item_reason": "Popular Indian restaurant in completed sample orders. This is not a stored personal restaurant rank.",
+            "items": [
+              {
+                "id": "26",
+                "kind": "restaurant"
+              },
+              {
+                "id": "47",
+                "kind": "restaurant"
+              },
+              {
+                "id": "10",
+                "kind": "restaurant"
+              },
+              {
+                "id": "36",
+                "kind": "restaurant"
+              },
+              {
+                "id": "46",
+                "kind": "restaurant"
+              },
+              {
+                "id": "3",
+                "kind": "restaurant"
+              }
+            ],
+            "unfiltered_count": 3,
+            "available_cuisines": [
+              "Japanese"
+            ]
+          },
+          {
+            "id": "explore_something_new",
+            "scope": "new_cuisine",
+            "fallback_kind": null,
+            "empty_kind": "filter_miss",
+            "metric": "completed_orders among unseen cuisines",
+            "explanation_kind": "new_cuisine",
+            "explanation_fallback": false,
+            "item_ids": [],
+            "first_item_reason": null,
+            "items": [],
+            "unfiltered_count": 8,
+            "available_cuisines": [
+              "Italian",
+              "Korean"
+            ]
+          }
+        ],
+        "request": {
+          "customer_id": "1",
+          "cuisine": "Indian",
+          "category": "Side",
+          "limit": 8,
+          "min_support_count": 14,
+          "min_confidence": 0.3,
+          "min_lift": 1.0
+        }
+      }
+    },
+    {
+      "id": "customer-2-cuisine-none-category-none",
+      "snapshot": {
+        "source": "processed_parquet",
+        "customer_id": "2",
+        "unavailable": [],
+        "history": {
+          "completed_orders": 6,
+          "distinct_foods": 18,
+          "cuisines": [
+            "American",
+            "Indian",
+            "Korean",
+            "Mexican",
+            "Thai"
+          ],
+          "thin_history": false,
+          "primary_cuisine": "American"
+        },
+        "applied": {
+          "cuisine": null,
+          "category": null
+        },
+        "persistence": {
+          "save": false,
+          "like": false,
+          "dislike": false
+        },
+        "sections": [
+          {
+            "id": "picked_for_you",
+            "scope": "personalized",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "stored recommendation rank",
+            "explanation_kind": "personalized",
+            "explanation_fallback": false,
+            "item_ids": [
+              "79",
+              "321",
+              "319"
+            ],
+            "first_item_reason": "Often bought with something you already ordered",
+            "items": [
+              {
+                "id": "79",
+                "kind": "food"
+              },
+              {
+                "id": "321",
+                "kind": "food"
+              },
+              {
+                "id": "319",
+                "kind": "food"
+              }
+            ],
+            "unfiltered_count": null,
+            "available_cuisines": null
+          },
+          {
+            "id": "popular_choices",
+            "scope": "global",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "global",
+            "explanation_fallback": false,
+            "item_ids": [
+              "113",
+              "328",
+              "334",
+              "566",
+              "323",
+              "329",
+              "424",
+              "527",
+              "16",
+              "7",
+              "45",
+              "1",
+              "44",
+              "28",
+              "34",
+              "17"
+            ],
+            "first_item_reason": "Popular across all customers in the completed-order data",
+            "items": [
+              {
+                "id": "113",
+                "kind": "food"
+              },
+              {
+                "id": "328",
+                "kind": "food"
+              },
+              {
+                "id": "334",
+                "kind": "food"
+              },
+              {
+                "id": "566",
+                "kind": "food"
+              },
+              {
+                "id": "323",
+                "kind": "food"
+              },
+              {
+                "id": "329",
+                "kind": "food"
+              },
+              {
+                "id": "424",
+                "kind": "food"
+              },
+              {
+                "id": "527",
+                "kind": "food"
+              },
+              {
+                "id": "16",
+                "kind": "restaurant"
+              },
+              {
+                "id": "7",
+                "kind": "restaurant"
+              },
+              {
+                "id": "45",
+                "kind": "restaurant"
+              },
+              {
+                "id": "1",
+                "kind": "restaurant"
+              },
+              {
+                "id": "44",
+                "kind": "restaurant"
+              },
+              {
+                "id": "28",
+                "kind": "restaurant"
+              },
+              {
+                "id": "34",
+                "kind": "restaurant"
+              },
+              {
+                "id": "17",
+                "kind": "restaurant"
+              }
+            ],
+            "unfiltered_count": null,
+            "available_cuisines": null
+          },
+          {
+            "id": "similar_to_what_you_like",
+            "scope": "cuisine_history",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "cuisine match plus completed-order volume",
+            "explanation_kind": "cuisine_history",
+            "explanation_fallback": false,
+            "item_ids": [
+              "129",
+              "121",
+              "127",
+              "349",
+              "125",
+              "266",
+              "318",
+              "207"
+            ],
+            "first_item_reason": "Based on your American orders",
+            "items": [
+              {
+                "id": "129",
+                "kind": "food"
+              },
+              {
+                "id": "121",
+                "kind": "food"
+              },
+              {
+                "id": "127",
+                "kind": "food"
+              },
+              {
+                "id": "349",
+                "kind": "food"
+              },
+              {
+                "id": "125",
+                "kind": "food"
+              },
+              {
+                "id": "266",
+                "kind": "food"
+              },
+              {
+                "id": "318",
+                "kind": "food"
+              },
+              {
+                "id": "207",
+                "kind": "food"
+              }
+            ],
+            "unfiltered_count": null,
+            "available_cuisines": null
+          },
+          {
+            "id": "frequently_bought_together",
+            "scope": "association",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "lift, confidence, and support_count",
+            "explanation_kind": "association",
+            "explanation_fallback": false,
+            "item_ids": [
+              "79"
+            ],
+            "first_item_reason": "Often bought with Spring Rolls. Association is not causation.",
+            "items": [
+              {
+                "id": "79",
+                "kind": "food",
+                "lift": 65.68499534016775,
+                "confidence": 0.5517241379310345,
+                "support": 0.0036322360953461976,
+                "support_count": 16
+              }
+            ],
+            "unfiltered_count": null,
+            "available_cuisines": null
+          },
+          {
+            "id": "restaurants_for_you",
+            "scope": "personalized",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "stored recommendation rank",
+            "explanation_kind": "personalized",
+            "explanation_fallback": false,
+            "item_ids": [
+              "22",
+              "16",
+              "18"
+            ],
+            "first_item_reason": "High restaurant-level sample rating in a cuisine you already order",
+            "items": [
+              {
+                "id": "22",
+                "kind": "restaurant"
+              },
+              {
+                "id": "16",
+                "kind": "restaurant"
+              },
+              {
+                "id": "18",
+                "kind": "restaurant"
+              }
+            ],
+            "unfiltered_count": null,
+            "available_cuisines": null
+          },
+          {
+            "id": "explore_something_new",
+            "scope": "new_cuisine",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "completed_orders among unseen cuisines",
+            "explanation_kind": "new_cuisine",
+            "explanation_fallback": false,
+            "item_ids": [
+              "324",
+              "325",
+              "573",
+              "279",
+              "284",
+              "525",
+              "201",
+              "197"
+            ],
+            "first_item_reason": "A Vietnamese dish that is not in your recent orders",
+            "items": [
+              {
+                "id": "324",
+                "kind": "food"
+              },
+              {
+                "id": "325",
+                "kind": "food"
+              },
+              {
+                "id": "573",
+                "kind": "food"
+              },
+              {
+                "id": "279",
+                "kind": "food"
+              },
+              {
+                "id": "284",
+                "kind": "food"
+              },
+              {
+                "id": "525",
+                "kind": "food"
+              },
+              {
+                "id": "201",
+                "kind": "food"
+              },
+              {
+                "id": "197",
+                "kind": "food"
+              }
+            ],
+            "unfiltered_count": null,
+            "available_cuisines": null
+          }
+        ],
+        "request": {
+          "customer_id": "2",
+          "cuisine": null,
+          "category": null,
+          "limit": 8,
+          "min_support_count": 14,
+          "min_confidence": 0.3,
+          "min_lift": 1.0
+        }
+      }
+    },
+    {
+      "id": "customer-2-cuisine-Indian-category-none",
+      "snapshot": {
+        "source": "processed_parquet",
+        "customer_id": "2",
+        "unavailable": [],
+        "history": {
+          "completed_orders": 6,
+          "distinct_foods": 18,
+          "cuisines": [
+            "American",
+            "Indian",
+            "Korean",
+            "Mexican",
+            "Thai"
+          ],
+          "thin_history": false,
+          "primary_cuisine": "American"
+        },
+        "applied": {
+          "cuisine": "Indian",
+          "category": null
+        },
+        "persistence": {
+          "save": false,
+          "like": false,
+          "dislike": false
+        },
+        "sections": [
+          {
+            "id": "picked_for_you",
+            "scope": "cuisine_catalog",
+            "fallback_kind": "cuisine_catalog",
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "cuisine_catalog",
+            "explanation_fallback": true,
+            "item_ids": [
+              "113",
+              "548",
+              "550",
+              "549",
+              "114",
+              "116",
+              "118",
+              "551"
+            ],
+            "first_item_reason": "Popular Indian dish in completed sample orders. This is not a stored personal suggestion for this customer.",
+            "items": [
+              {
+                "id": "113",
+                "kind": "food"
+              },
+              {
+                "id": "548",
+                "kind": "food"
+              },
+              {
+                "id": "550",
+                "kind": "food"
+              },
+              {
+                "id": "549",
+                "kind": "food"
+              },
+              {
+                "id": "114",
+                "kind": "food"
+              },
+              {
+                "id": "116",
+                "kind": "food"
+              },
+              {
+                "id": "118",
+                "kind": "food"
+              },
+              {
+                "id": "551",
+                "kind": "food"
+              }
+            ],
+            "unfiltered_count": 3,
+            "available_cuisines": [
+              "American",
+              "Thai"
+            ]
+          },
+          {
+            "id": "popular_choices",
+            "scope": "global",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "global",
+            "explanation_fallback": false,
+            "item_ids": [
+              "113",
+              "548",
+              "550",
+              "549",
+              "114",
+              "116",
+              "118",
+              "551",
+              "26",
+              "47",
+              "10",
+              "36",
+              "46",
+              "3"
+            ],
+            "first_item_reason": "Popular across all customers in the completed-order data",
+            "items": [
+              {
+                "id": "113",
+                "kind": "food"
+              },
+              {
+                "id": "548",
+                "kind": "food"
+              },
+              {
+                "id": "550",
+                "kind": "food"
+              },
+              {
+                "id": "549",
+                "kind": "food"
+              },
+              {
+                "id": "114",
+                "kind": "food"
+              },
+              {
+                "id": "116",
+                "kind": "food"
+              },
+              {
+                "id": "118",
+                "kind": "food"
+              },
+              {
+                "id": "551",
+                "kind": "food"
+              },
+              {
+                "id": "26",
+                "kind": "restaurant"
+              },
+              {
+                "id": "47",
+                "kind": "restaurant"
+              },
+              {
+                "id": "10",
+                "kind": "restaurant"
+              },
+              {
+                "id": "36",
+                "kind": "restaurant"
+              },
+              {
+                "id": "46",
+                "kind": "restaurant"
+              },
+              {
+                "id": "3",
+                "kind": "restaurant"
+              }
+            ],
+            "unfiltered_count": 16,
+            "available_cuisines": [
+              "Indian",
+              "Italian",
+              "Japanese",
+              "Korean",
+              "Mexican",
+              "Thai",
+              "Vietnamese"
+            ]
+          },
+          {
+            "id": "similar_to_what_you_like",
+            "scope": "cuisine_catalog",
+            "fallback_kind": "cuisine_catalog",
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "cuisine_catalog",
+            "explanation_fallback": true,
+            "item_ids": [
+              "117",
+              "545",
+              "119",
+              "418",
+              "413",
+              "120",
+              "421",
+              "539"
+            ],
+            "first_item_reason": "Popular Indian dish in the sample catalog. This is not based on this customer's most-ordered cuisine.",
+            "items": [
+              {
+                "id": "117",
+                "kind": "food"
+              },
+              {
+                "id": "545",
+                "kind": "food"
+              },
+              {
+                "id": "119",
+                "kind": "food"
+              },
+              {
+                "id": "418",
+                "kind": "food"
+              },
+              {
+                "id": "413",
+                "kind": "food"
+              },
+              {
+                "id": "120",
+                "kind": "food"
+              },
+              {
+                "id": "421",
+                "kind": "food"
+              },
+              {
+                "id": "539",
+                "kind": "food"
+              }
+            ],
+            "unfiltered_count": 8,
+            "available_cuisines": [
+              "American"
+            ]
+          },
+          {
+            "id": "frequently_bought_together",
+            "scope": "association",
+            "fallback_kind": null,
+            "empty_kind": "filter_miss",
+            "metric": "lift, confidence, and support_count",
+            "explanation_kind": "association",
+            "explanation_fallback": false,
+            "item_ids": [],
+            "first_item_reason": null,
+            "items": [],
+            "unfiltered_count": 1,
+            "available_cuisines": [
+              "Thai"
+            ]
+          },
+          {
+            "id": "restaurants_for_you",
+            "scope": "cuisine_catalog",
+            "fallback_kind": "cuisine_catalog",
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "cuisine_catalog",
+            "explanation_fallback": true,
+            "item_ids": [
+              "26",
+              "47",
+              "10",
+              "36",
+              "46",
+              "3"
+            ],
+            "first_item_reason": "Popular Indian restaurant in completed sample orders. This is not a stored personal restaurant rank.",
+            "items": [
+              {
+                "id": "26",
+                "kind": "restaurant"
+              },
+              {
+                "id": "47",
+                "kind": "restaurant"
+              },
+              {
+                "id": "10",
+                "kind": "restaurant"
+              },
+              {
+                "id": "36",
+                "kind": "restaurant"
+              },
+              {
+                "id": "46",
+                "kind": "restaurant"
+              },
+              {
+                "id": "3",
+                "kind": "restaurant"
+              }
+            ],
+            "unfiltered_count": 3,
+            "available_cuisines": [
+              "American",
+              "Mexican"
+            ]
+          },
+          {
+            "id": "explore_something_new",
+            "scope": "cuisine_catalog",
+            "fallback_kind": "cuisine_catalog",
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "cuisine_catalog",
+            "explanation_fallback": true,
+            "item_ids": [
+              "115",
+              "420",
+              "547",
+              "300",
+              "415",
+              "540",
+              "310",
+              "414"
+            ],
+            "first_item_reason": "Popular Indian dish in the sample catalog. This is not treated as a new cuisine for this customer.",
+            "items": [
+              {
+                "id": "115",
+                "kind": "food"
+              },
+              {
+                "id": "420",
+                "kind": "food"
+              },
+              {
+                "id": "547",
+                "kind": "food"
+              },
+              {
+                "id": "300",
+                "kind": "food"
+              },
+              {
+                "id": "415",
+                "kind": "food"
+              },
+              {
+                "id": "540",
+                "kind": "food"
+              },
+              {
+                "id": "310",
+                "kind": "food"
+              },
+              {
+                "id": "414",
+                "kind": "food"
+              }
+            ],
+            "unfiltered_count": 8,
+            "available_cuisines": [
+              "Japanese",
+              "Vietnamese"
+            ]
+          }
+        ],
+        "request": {
+          "customer_id": "2",
+          "cuisine": "Indian",
+          "category": null,
+          "limit": 8,
+          "min_support_count": 14,
+          "min_confidence": 0.3,
+          "min_lift": 1.0
+        }
+      }
+    },
+    {
+      "id": "customer-2-cuisine-Indian-category-Side",
+      "snapshot": {
+        "source": "processed_parquet",
+        "customer_id": "2",
+        "unavailable": [],
+        "history": {
+          "completed_orders": 6,
+          "distinct_foods": 18,
+          "cuisines": [
+            "American",
+            "Indian",
+            "Korean",
+            "Mexican",
+            "Thai"
+          ],
+          "thin_history": false,
+          "primary_cuisine": "American"
+        },
+        "applied": {
+          "cuisine": "Indian",
+          "category": "Side"
+        },
+        "persistence": {
+          "save": false,
+          "like": false,
+          "dislike": false
+        },
+        "sections": [
+          {
+            "id": "picked_for_you",
+            "scope": "personalized",
+            "fallback_kind": null,
+            "empty_kind": "filter_miss",
+            "metric": "stored recommendation rank",
+            "explanation_kind": "personalized",
+            "explanation_fallback": false,
+            "item_ids": [],
+            "first_item_reason": null,
+            "items": [],
+            "unfiltered_count": 3,
+            "available_cuisines": [
+              "American",
+              "Thai"
+            ]
+          },
+          {
+            "id": "popular_choices",
+            "scope": "global",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "global",
+            "explanation_fallback": false,
+            "item_ids": [
+              "26",
+              "47",
+              "10",
+              "36",
+              "46",
+              "3"
+            ],
+            "first_item_reason": "Popular across all customers in the completed-order data",
+            "items": [
+              {
+                "id": "26",
+                "kind": "restaurant"
+              },
+              {
+                "id": "47",
+                "kind": "restaurant"
+              },
+              {
+                "id": "10",
+                "kind": "restaurant"
+              },
+              {
+                "id": "36",
+                "kind": "restaurant"
+              },
+              {
+                "id": "46",
+                "kind": "restaurant"
+              },
+              {
+                "id": "3",
+                "kind": "restaurant"
+              }
+            ],
+            "unfiltered_count": 16,
+            "available_cuisines": [
+              "Indian",
+              "Italian",
+              "Japanese",
+              "Korean",
+              "Mexican",
+              "Thai",
+              "Vietnamese"
+            ]
+          },
+          {
+            "id": "similar_to_what_you_like",
+            "scope": "cuisine_history",
+            "fallback_kind": null,
+            "empty_kind": "filter_miss",
+            "metric": "cuisine match plus completed-order volume",
+            "explanation_kind": "cuisine_history",
+            "explanation_fallback": false,
+            "item_ids": [],
+            "first_item_reason": null,
+            "items": [],
+            "unfiltered_count": 8,
+            "available_cuisines": [
+              "American"
+            ]
+          },
+          {
+            "id": "frequently_bought_together",
+            "scope": "association",
+            "fallback_kind": null,
+            "empty_kind": "filter_miss",
+            "metric": "lift, confidence, and support_count",
+            "explanation_kind": "association",
+            "explanation_fallback": false,
+            "item_ids": [],
+            "first_item_reason": null,
+            "items": [],
+            "unfiltered_count": 1,
+            "available_cuisines": [
+              "Thai"
+            ]
+          },
+          {
+            "id": "restaurants_for_you",
+            "scope": "cuisine_catalog",
+            "fallback_kind": "cuisine_catalog",
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "cuisine_catalog",
+            "explanation_fallback": true,
+            "item_ids": [
+              "26",
+              "47",
+              "10",
+              "36",
+              "46",
+              "3"
+            ],
+            "first_item_reason": "Popular Indian restaurant in completed sample orders. This is not a stored personal restaurant rank.",
+            "items": [
+              {
+                "id": "26",
+                "kind": "restaurant"
+              },
+              {
+                "id": "47",
+                "kind": "restaurant"
+              },
+              {
+                "id": "10",
+                "kind": "restaurant"
+              },
+              {
+                "id": "36",
+                "kind": "restaurant"
+              },
+              {
+                "id": "46",
+                "kind": "restaurant"
+              },
+              {
+                "id": "3",
+                "kind": "restaurant"
+              }
+            ],
+            "unfiltered_count": 3,
+            "available_cuisines": [
+              "American",
+              "Mexican"
+            ]
+          },
+          {
+            "id": "explore_something_new",
+            "scope": "new_cuisine",
+            "fallback_kind": null,
+            "empty_kind": "filter_miss",
+            "metric": "completed_orders among unseen cuisines",
+            "explanation_kind": "new_cuisine",
+            "explanation_fallback": false,
+            "item_ids": [],
+            "first_item_reason": null,
+            "items": [],
+            "unfiltered_count": 8,
+            "available_cuisines": [
+              "Japanese",
+              "Vietnamese"
+            ]
+          }
+        ],
+        "request": {
+          "customer_id": "2",
+          "cuisine": "Indian",
+          "category": "Side",
+          "limit": 8,
+          "min_support_count": 14,
+          "min_confidence": 0.3,
+          "min_lift": 1.0
+        }
+      }
+    },
+    {
+      "id": "customer-8-cuisine-none-category-none",
+      "snapshot": {
+        "source": "processed_parquet",
+        "customer_id": "8",
+        "unavailable": [],
+        "history": {
+          "completed_orders": 11,
+          "distinct_foods": 38,
+          "cuisines": [
+            "American",
+            "Chinese",
+            "Indian",
+            "Korean",
+            "Mediterranean",
+            "Mexican",
+            "Thai",
+            "Vietnamese"
+          ],
+          "thin_history": false,
+          "primary_cuisine": "Korean"
+        },
+        "applied": {
+          "cuisine": null,
+          "category": null
+        },
+        "persistence": {
+          "save": false,
+          "like": false,
+          "dislike": false
+        },
+        "sections": [
+          {
+            "id": "picked_for_you",
+            "scope": "personalized",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "stored recommendation rank",
+            "explanation_kind": "personalized",
+            "explanation_fallback": false,
+            "item_ids": [
+              "328",
+              "329",
+              "324",
+              "524",
+              "522"
+            ],
+            "first_item_reason": "Often bought with something you already ordered",
+            "items": [
+              {
+                "id": "328",
+                "kind": "food"
+              },
+              {
+                "id": "329",
+                "kind": "food"
+              },
+              {
+                "id": "324",
+                "kind": "food"
+              },
+              {
+                "id": "524",
+                "kind": "food"
+              },
+              {
+                "id": "522",
+                "kind": "food"
+              }
+            ],
+            "unfiltered_count": null,
+            "available_cuisines": null
+          },
+          {
+            "id": "popular_choices",
+            "scope": "global",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "global",
+            "explanation_fallback": false,
+            "item_ids": [
+              "113",
+              "328",
+              "334",
+              "566",
+              "323",
+              "329",
+              "424",
+              "527",
+              "16",
+              "7",
+              "45",
+              "1",
+              "44",
+              "28",
+              "34",
+              "17"
+            ],
+            "first_item_reason": "Popular across all customers in the completed-order data",
+            "items": [
+              {
+                "id": "113",
+                "kind": "food"
+              },
+              {
+                "id": "328",
+                "kind": "food"
+              },
+              {
+                "id": "334",
+                "kind": "food"
+              },
+              {
+                "id": "566",
+                "kind": "food"
+              },
+              {
+                "id": "323",
+                "kind": "food"
+              },
+              {
+                "id": "329",
+                "kind": "food"
+              },
+              {
+                "id": "424",
+                "kind": "food"
+              },
+              {
+                "id": "527",
+                "kind": "food"
+              },
+              {
+                "id": "16",
+                "kind": "restaurant"
+              },
+              {
+                "id": "7",
+                "kind": "restaurant"
+              },
+              {
+                "id": "45",
+                "kind": "restaurant"
+              },
+              {
+                "id": "1",
+                "kind": "restaurant"
+              },
+              {
+                "id": "44",
+                "kind": "restaurant"
+              },
+              {
+                "id": "28",
+                "kind": "restaurant"
+              },
+              {
+                "id": "34",
+                "kind": "restaurant"
+              },
+              {
+                "id": "17",
+                "kind": "restaurant"
+              }
+            ],
+            "unfiltered_count": null,
+            "available_cuisines": null
+          },
+          {
+            "id": "similar_to_what_you_like",
+            "scope": "cuisine_history",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "cuisine match plus completed-order volume",
+            "explanation_kind": "cuisine_history",
+            "explanation_fallback": false,
+            "item_ids": [
+              "334",
+              "332",
+              "331",
+              "338",
+              "341",
+              "405",
+              "56",
+              "404"
+            ],
+            "first_item_reason": "Based on your Korean orders",
+            "items": [
+              {
+                "id": "334",
+                "kind": "food"
+              },
+              {
+                "id": "332",
+                "kind": "food"
+              },
+              {
+                "id": "331",
+                "kind": "food"
+              },
+              {
+                "id": "338",
+                "kind": "food"
+              },
+              {
+                "id": "341",
+                "kind": "food"
+              },
+              {
+                "id": "405",
+                "kind": "food"
+              },
+              {
+                "id": "56",
+                "kind": "food"
+              },
+              {
+                "id": "404",
+                "kind": "food"
+              }
+            ],
+            "unfiltered_count": null,
+            "available_cuisines": null
+          },
+          {
+            "id": "frequently_bought_together",
+            "scope": "association",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "lift, confidence, and support_count",
+            "explanation_kind": "association",
+            "explanation_fallback": false,
+            "item_ids": [
+              "326",
+              "522",
+              "329",
+              "524",
+              "328"
+            ],
+            "first_item_reason": "Often bought with Banh Mi. Association is not causation.",
+            "items": [
+              {
+                "id": "326",
+                "kind": "food",
+                "lift": 61.33087633087633,
+                "confidence": 0.4594594594594595,
+                "support": 0.0038592508513053347,
+                "support_count": 17
+              },
+              {
+                "id": "522",
+                "kind": "food",
+                "lift": 59.527027027027025,
+                "confidence": 0.3783783783783784,
+                "support": 0.003178206583427923,
+                "support_count": 14
+              },
+              {
+                "id": "329",
+                "kind": "food",
+                "lift": 54.70051132213295,
+                "confidence": 0.4594594594594595,
+                "support": 0.0038592508513053347,
+                "support_count": 17
+              },
+              {
+                "id": "524",
+                "kind": "food",
+                "lift": 50.50778050778051,
+                "confidence": 0.3783783783783784,
+                "support": 0.003178206583427923,
+                "support_count": 14
+              },
+              {
+                "id": "328",
+                "kind": "food",
+                "lift": 44.23959827833572,
+                "confidence": 0.4117647058823529,
+                "support": 0.003178206583427923,
+                "support_count": 14
+              }
+            ],
+            "unfiltered_count": null,
+            "available_cuisines": null
+          },
+          {
+            "id": "restaurants_for_you",
+            "scope": "personalized",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "stored recommendation rank",
+            "explanation_kind": "personalized",
+            "explanation_fallback": false,
+            "item_ids": [
+              "45",
+              "28",
+              "49"
+            ],
+            "first_item_reason": "High restaurant-level sample rating in a cuisine you already order",
+            "items": [
+              {
+                "id": "45",
+                "kind": "restaurant"
+              },
+              {
+                "id": "28",
+                "kind": "restaurant"
+              },
+              {
+                "id": "49",
+                "kind": "restaurant"
+              }
+            ],
+            "unfiltered_count": null,
+            "available_cuisines": null
+          },
+          {
+            "id": "explore_something_new",
+            "scope": "new_cuisine",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "completed_orders among unseen cuisines",
+            "explanation_kind": "new_cuisine",
+            "explanation_fallback": false,
+            "item_ids": [
+              "201",
+              "197",
+              "203",
+              "195",
+              "558",
+              "398",
+              "196",
+              "200"
+            ],
+            "first_item_reason": "An Italian dish that is not in your recent orders",
+            "items": [
+              {
+                "id": "201",
+                "kind": "food"
+              },
+              {
+                "id": "197",
+                "kind": "food"
+              },
+              {
+                "id": "203",
+                "kind": "food"
+              },
+              {
+                "id": "195",
+                "kind": "food"
+              },
+              {
+                "id": "558",
+                "kind": "food"
+              },
+              {
+                "id": "398",
+                "kind": "food"
+              },
+              {
+                "id": "196",
+                "kind": "food"
+              },
+              {
+                "id": "200",
+                "kind": "food"
+              }
+            ],
+            "unfiltered_count": null,
+            "available_cuisines": null
+          }
+        ],
+        "request": {
+          "customer_id": "8",
+          "cuisine": null,
+          "category": null,
+          "limit": 8,
+          "min_support_count": 14,
+          "min_confidence": 0.3,
+          "min_lift": 1.0
+        }
+      }
+    },
+    {
+      "id": "customer-8-cuisine-Indian-category-none",
+      "snapshot": {
+        "source": "processed_parquet",
+        "customer_id": "8",
+        "unavailable": [],
+        "history": {
+          "completed_orders": 11,
+          "distinct_foods": 38,
+          "cuisines": [
+            "American",
+            "Chinese",
+            "Indian",
+            "Korean",
+            "Mediterranean",
+            "Mexican",
+            "Thai",
+            "Vietnamese"
+          ],
+          "thin_history": false,
+          "primary_cuisine": "Korean"
+        },
+        "applied": {
+          "cuisine": "Indian",
+          "category": null
+        },
+        "persistence": {
+          "save": false,
+          "like": false,
+          "dislike": false
+        },
+        "sections": [
+          {
+            "id": "picked_for_you",
+            "scope": "cuisine_catalog",
+            "fallback_kind": "cuisine_catalog",
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "cuisine_catalog",
+            "explanation_fallback": true,
+            "item_ids": [
+              "113",
+              "548",
+              "550",
+              "549",
+              "114",
+              "116",
+              "118",
+              "551"
+            ],
+            "first_item_reason": "Popular Indian dish in completed sample orders. This is not a stored personal suggestion for this customer.",
+            "items": [
+              {
+                "id": "113",
+                "kind": "food"
+              },
+              {
+                "id": "548",
+                "kind": "food"
+              },
+              {
+                "id": "550",
+                "kind": "food"
+              },
+              {
+                "id": "549",
+                "kind": "food"
+              },
+              {
+                "id": "114",
+                "kind": "food"
+              },
+              {
+                "id": "116",
+                "kind": "food"
+              },
+              {
+                "id": "118",
+                "kind": "food"
+              },
+              {
+                "id": "551",
+                "kind": "food"
+              }
+            ],
+            "unfiltered_count": 5,
+            "available_cuisines": [
+              "Vietnamese"
+            ]
+          },
+          {
+            "id": "popular_choices",
+            "scope": "global",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "global",
+            "explanation_fallback": false,
+            "item_ids": [
+              "113",
+              "548",
+              "550",
+              "549",
+              "114",
+              "116",
+              "118",
+              "551",
+              "26",
+              "47",
+              "10",
+              "36",
+              "46",
+              "3"
+            ],
+            "first_item_reason": "Popular across all customers in the completed-order data",
+            "items": [
+              {
+                "id": "113",
+                "kind": "food"
+              },
+              {
+                "id": "548",
+                "kind": "food"
+              },
+              {
+                "id": "550",
+                "kind": "food"
+              },
+              {
+                "id": "549",
+                "kind": "food"
+              },
+              {
+                "id": "114",
+                "kind": "food"
+              },
+              {
+                "id": "116",
+                "kind": "food"
+              },
+              {
+                "id": "118",
+                "kind": "food"
+              },
+              {
+                "id": "551",
+                "kind": "food"
+              },
+              {
+                "id": "26",
+                "kind": "restaurant"
+              },
+              {
+                "id": "47",
+                "kind": "restaurant"
+              },
+              {
+                "id": "10",
+                "kind": "restaurant"
+              },
+              {
+                "id": "36",
+                "kind": "restaurant"
+              },
+              {
+                "id": "46",
+                "kind": "restaurant"
+              },
+              {
+                "id": "3",
+                "kind": "restaurant"
+              }
+            ],
+            "unfiltered_count": 16,
+            "available_cuisines": [
+              "Indian",
+              "Italian",
+              "Japanese",
+              "Korean",
+              "Mexican",
+              "Thai",
+              "Vietnamese"
+            ]
+          },
+          {
+            "id": "similar_to_what_you_like",
+            "scope": "cuisine_catalog",
+            "fallback_kind": "cuisine_catalog",
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "cuisine_catalog",
+            "explanation_fallback": true,
+            "item_ids": [
+              "117",
+              "545",
+              "119",
+              "418",
+              "413",
+              "120",
+              "421",
+              "539"
+            ],
+            "first_item_reason": "Popular Indian dish in the sample catalog. This is not based on this customer's most-ordered cuisine.",
+            "items": [
+              {
+                "id": "117",
+                "kind": "food"
+              },
+              {
+                "id": "545",
+                "kind": "food"
+              },
+              {
+                "id": "119",
+                "kind": "food"
+              },
+              {
+                "id": "418",
+                "kind": "food"
+              },
+              {
+                "id": "413",
+                "kind": "food"
+              },
+              {
+                "id": "120",
+                "kind": "food"
+              },
+              {
+                "id": "421",
+                "kind": "food"
+              },
+              {
+                "id": "539",
+                "kind": "food"
+              }
+            ],
+            "unfiltered_count": 8,
+            "available_cuisines": [
+              "Korean"
+            ]
+          },
+          {
+            "id": "frequently_bought_together",
+            "scope": "association",
+            "fallback_kind": null,
+            "empty_kind": "filter_miss",
+            "metric": "lift, confidence, and support_count",
+            "explanation_kind": "association",
+            "explanation_fallback": false,
+            "item_ids": [],
+            "first_item_reason": null,
+            "items": [],
+            "unfiltered_count": 5,
+            "available_cuisines": [
+              "Vietnamese"
+            ]
+          },
+          {
+            "id": "restaurants_for_you",
+            "scope": "cuisine_catalog",
+            "fallback_kind": "cuisine_catalog",
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "cuisine_catalog",
+            "explanation_fallback": true,
+            "item_ids": [
+              "26",
+              "47",
+              "10",
+              "36",
+              "46",
+              "3"
+            ],
+            "first_item_reason": "Popular Indian restaurant in completed sample orders. This is not a stored personal restaurant rank.",
+            "items": [
+              {
+                "id": "26",
+                "kind": "restaurant"
+              },
+              {
+                "id": "47",
+                "kind": "restaurant"
+              },
+              {
+                "id": "10",
+                "kind": "restaurant"
+              },
+              {
+                "id": "36",
+                "kind": "restaurant"
+              },
+              {
+                "id": "46",
+                "kind": "restaurant"
+              },
+              {
+                "id": "3",
+                "kind": "restaurant"
+              }
+            ],
+            "unfiltered_count": 3,
+            "available_cuisines": [
+              "Vietnamese"
+            ]
+          },
+          {
+            "id": "explore_something_new",
+            "scope": "cuisine_catalog",
+            "fallback_kind": "cuisine_catalog",
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "cuisine_catalog",
+            "explanation_fallback": true,
+            "item_ids": [
+              "115",
+              "420",
+              "547",
+              "300",
+              "415",
+              "540",
+              "310",
+              "414"
+            ],
+            "first_item_reason": "Popular Indian dish in the sample catalog. This is not treated as a new cuisine for this customer.",
+            "items": [
+              {
+                "id": "115",
+                "kind": "food"
+              },
+              {
+                "id": "420",
+                "kind": "food"
+              },
+              {
+                "id": "547",
+                "kind": "food"
+              },
+              {
+                "id": "300",
+                "kind": "food"
+              },
+              {
+                "id": "415",
+                "kind": "food"
+              },
+              {
+                "id": "540",
+                "kind": "food"
+              },
+              {
+                "id": "310",
+                "kind": "food"
+              },
+              {
+                "id": "414",
+                "kind": "food"
+              }
+            ],
+            "unfiltered_count": 8,
+            "available_cuisines": [
+              "Italian",
+              "Japanese"
+            ]
+          }
+        ],
+        "request": {
+          "customer_id": "8",
+          "cuisine": "Indian",
+          "category": null,
+          "limit": 8,
+          "min_support_count": 14,
+          "min_confidence": 0.3,
+          "min_lift": 1.0
+        }
+      }
+    },
+    {
+      "id": "customer-8-cuisine-Indian-category-Side",
+      "snapshot": {
+        "source": "processed_parquet",
+        "customer_id": "8",
+        "unavailable": [],
+        "history": {
+          "completed_orders": 11,
+          "distinct_foods": 38,
+          "cuisines": [
+            "American",
+            "Chinese",
+            "Indian",
+            "Korean",
+            "Mediterranean",
+            "Mexican",
+            "Thai",
+            "Vietnamese"
+          ],
+          "thin_history": false,
+          "primary_cuisine": "Korean"
+        },
+        "applied": {
+          "cuisine": "Indian",
+          "category": "Side"
+        },
+        "persistence": {
+          "save": false,
+          "like": false,
+          "dislike": false
+        },
+        "sections": [
+          {
+            "id": "picked_for_you",
+            "scope": "personalized",
+            "fallback_kind": null,
+            "empty_kind": "filter_miss",
+            "metric": "stored recommendation rank",
+            "explanation_kind": "personalized",
+            "explanation_fallback": false,
+            "item_ids": [],
+            "first_item_reason": null,
+            "items": [],
+            "unfiltered_count": 5,
+            "available_cuisines": [
+              "Vietnamese"
+            ]
+          },
+          {
+            "id": "popular_choices",
+            "scope": "global",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "global",
+            "explanation_fallback": false,
+            "item_ids": [
+              "26",
+              "47",
+              "10",
+              "36",
+              "46",
+              "3"
+            ],
+            "first_item_reason": "Popular across all customers in the completed-order data",
+            "items": [
+              {
+                "id": "26",
+                "kind": "restaurant"
+              },
+              {
+                "id": "47",
+                "kind": "restaurant"
+              },
+              {
+                "id": "10",
+                "kind": "restaurant"
+              },
+              {
+                "id": "36",
+                "kind": "restaurant"
+              },
+              {
+                "id": "46",
+                "kind": "restaurant"
+              },
+              {
+                "id": "3",
+                "kind": "restaurant"
+              }
+            ],
+            "unfiltered_count": 16,
+            "available_cuisines": [
+              "Indian",
+              "Italian",
+              "Japanese",
+              "Korean",
+              "Mexican",
+              "Thai",
+              "Vietnamese"
+            ]
+          },
+          {
+            "id": "similar_to_what_you_like",
+            "scope": "cuisine_history",
+            "fallback_kind": null,
+            "empty_kind": "filter_miss",
+            "metric": "cuisine match plus completed-order volume",
+            "explanation_kind": "cuisine_history",
+            "explanation_fallback": false,
+            "item_ids": [],
+            "first_item_reason": null,
+            "items": [],
+            "unfiltered_count": 8,
+            "available_cuisines": [
+              "Korean"
+            ]
+          },
+          {
+            "id": "frequently_bought_together",
+            "scope": "association",
+            "fallback_kind": null,
+            "empty_kind": "filter_miss",
+            "metric": "lift, confidence, and support_count",
+            "explanation_kind": "association",
+            "explanation_fallback": false,
+            "item_ids": [],
+            "first_item_reason": null,
+            "items": [],
+            "unfiltered_count": 5,
+            "available_cuisines": [
+              "Vietnamese"
+            ]
+          },
+          {
+            "id": "restaurants_for_you",
+            "scope": "cuisine_catalog",
+            "fallback_kind": "cuisine_catalog",
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "cuisine_catalog",
+            "explanation_fallback": true,
+            "item_ids": [
+              "26",
+              "47",
+              "10",
+              "36",
+              "46",
+              "3"
+            ],
+            "first_item_reason": "Popular Indian restaurant in completed sample orders. This is not a stored personal restaurant rank.",
+            "items": [
+              {
+                "id": "26",
+                "kind": "restaurant"
+              },
+              {
+                "id": "47",
+                "kind": "restaurant"
+              },
+              {
+                "id": "10",
+                "kind": "restaurant"
+              },
+              {
+                "id": "36",
+                "kind": "restaurant"
+              },
+              {
+                "id": "46",
+                "kind": "restaurant"
+              },
+              {
+                "id": "3",
+                "kind": "restaurant"
+              }
+            ],
+            "unfiltered_count": 3,
+            "available_cuisines": [
+              "Vietnamese"
+            ]
+          },
+          {
+            "id": "explore_something_new",
+            "scope": "new_cuisine",
+            "fallback_kind": null,
+            "empty_kind": "filter_miss",
+            "metric": "completed_orders among unseen cuisines",
+            "explanation_kind": "new_cuisine",
+            "explanation_fallback": false,
+            "item_ids": [],
+            "first_item_reason": null,
+            "items": [],
+            "unfiltered_count": 8,
+            "available_cuisines": [
+              "Italian",
+              "Japanese"
+            ]
+          }
+        ],
+        "request": {
+          "customer_id": "8",
+          "cuisine": "Indian",
+          "category": "Side",
+          "limit": 8,
+          "min_support_count": 14,
+          "min_confidence": 0.3,
+          "min_lift": 1.0
+        }
+      }
+    },
+    {
+      "id": "customer-9-cuisine-none-category-none",
+      "snapshot": {
+        "source": "processed_parquet",
+        "customer_id": "9",
+        "unavailable": [],
+        "history": {
+          "completed_orders": 13,
+          "distinct_foods": 46,
+          "cuisines": [
+            "American",
+            "Chinese",
+            "Indian",
+            "Japanese",
+            "Korean",
+            "Mexican",
+            "Thai",
+            "Vietnamese"
+          ],
+          "thin_history": false,
+          "primary_cuisine": "Mexican"
+        },
+        "applied": {
+          "cuisine": null,
+          "category": null
+        },
+        "persistence": {
+          "save": false,
+          "like": false,
+          "dislike": false
+        },
+        "sections": [
+          {
+            "id": "picked_for_you",
+            "scope": "personalized",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "stored recommendation rank",
+            "explanation_kind": "personalized",
+            "explanation_fallback": false,
+            "item_ids": [
+              "550",
+              "549",
+              "279",
+              "280",
+              "321"
+            ],
+            "first_item_reason": "Often bought with something you already ordered",
+            "items": [
+              {
+                "id": "550",
+                "kind": "food"
+              },
+              {
+                "id": "549",
+                "kind": "food"
+              },
+              {
+                "id": "279",
+                "kind": "food"
+              },
+              {
+                "id": "280",
+                "kind": "food"
+              },
+              {
+                "id": "321",
+                "kind": "food"
+              }
+            ],
+            "unfiltered_count": null,
+            "available_cuisines": null
+          },
+          {
+            "id": "popular_choices",
+            "scope": "global",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "global",
+            "explanation_fallback": false,
+            "item_ids": [
+              "113",
+              "328",
+              "334",
+              "566",
+              "323",
+              "329",
+              "424",
+              "527",
+              "16",
+              "7",
+              "45",
+              "1",
+              "44",
+              "28",
+              "34",
+              "17"
+            ],
+            "first_item_reason": "Popular across all customers in the completed-order data",
+            "items": [
+              {
+                "id": "113",
+                "kind": "food"
+              },
+              {
+                "id": "328",
+                "kind": "food"
+              },
+              {
+                "id": "334",
+                "kind": "food"
+              },
+              {
+                "id": "566",
+                "kind": "food"
+              },
+              {
+                "id": "323",
+                "kind": "food"
+              },
+              {
+                "id": "329",
+                "kind": "food"
+              },
+              {
+                "id": "424",
+                "kind": "food"
+              },
+              {
+                "id": "527",
+                "kind": "food"
+              },
+              {
+                "id": "16",
+                "kind": "restaurant"
+              },
+              {
+                "id": "7",
+                "kind": "restaurant"
+              },
+              {
+                "id": "45",
+                "kind": "restaurant"
+              },
+              {
+                "id": "1",
+                "kind": "restaurant"
+              },
+              {
+                "id": "44",
+                "kind": "restaurant"
+              },
+              {
+                "id": "28",
+                "kind": "restaurant"
+              },
+              {
+                "id": "34",
+                "kind": "restaurant"
+              },
+              {
+                "id": "17",
+                "kind": "restaurant"
+              }
+            ],
+            "unfiltered_count": null,
+            "available_cuisines": null
+          },
+          {
+            "id": "similar_to_what_you_like",
+            "scope": "cuisine_history",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "cuisine match plus completed-order volume",
+            "explanation_kind": "cuisine_history",
+            "explanation_fallback": false,
+            "item_ids": [
+              "269",
+              "517",
+              "276",
+              "4",
+              "495",
+              "519",
+              "2",
+              "271"
+            ],
+            "first_item_reason": "Based on your Mexican orders",
+            "items": [
+              {
+                "id": "269",
+                "kind": "food"
+              },
+              {
+                "id": "517",
+                "kind": "food"
+              },
+              {
+                "id": "276",
+                "kind": "food"
+              },
+              {
+                "id": "4",
+                "kind": "food"
+              },
+              {
+                "id": "495",
+                "kind": "food"
+              },
+              {
+                "id": "519",
+                "kind": "food"
+              },
+              {
+                "id": "2",
+                "kind": "food"
+              },
+              {
+                "id": "271",
+                "kind": "food"
+              }
+            ],
+            "unfiltered_count": null,
+            "available_cuisines": null
+          },
+          {
+            "id": "frequently_bought_together",
+            "scope": "association",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "lift, confidence, and support_count",
+            "explanation_kind": "association",
+            "explanation_fallback": false,
+            "item_ids": [
+              "426",
+              "279",
+              "321",
+              "284",
+              "280",
+              "423",
+              "550",
+              "549"
+            ],
+            "first_item_reason": "Often bought with Tempura. Association is not causation.",
+            "items": [
+              {
+                "id": "426",
+                "kind": "food",
+                "lift": 89.37681159420289,
+                "confidence": 0.4666666666666667,
+                "support": 0.003178206583427923,
+                "support_count": 14
+              },
+              {
+                "id": "279",
+                "kind": "food",
+                "lift": 71.97712418300654,
+                "confidence": 0.5882352941176471,
+                "support": 0.004540295119182747,
+                "support_count": 20
+              },
+              {
+                "id": "321",
+                "kind": "food",
+                "lift": 69.04388714733543,
+                "confidence": 0.5172413793103449,
+                "support": 0.00340522133938706,
+                "support_count": 15
+              },
+              {
+                "id": "284",
+                "kind": "food",
+                "lift": 68.37826797385621,
+                "confidence": 0.5588235294117647,
+                "support": 0.004313280363223609,
+                "support_count": 19
+              },
+              {
+                "id": "280",
+                "kind": "food",
+                "lift": 64.77941176470588,
+                "confidence": 0.5,
+                "support": 0.00340522133938706,
+                "support_count": 15
+              },
+              {
+                "id": "423",
+                "kind": "food",
+                "lift": 61.57968313140728,
+                "confidence": 0.40540540540540543,
+                "support": 0.00340522133938706,
+                "support_count": 15
+              },
+              {
+                "id": "550",
+                "kind": "food",
+                "lift": 61.33087633087633,
+                "confidence": 0.5151515151515151,
+                "support": 0.0038592508513053347,
+                "support_count": 17
+              },
+              {
+                "id": "549",
+                "kind": "food",
+                "lift": 55.61868686868686,
+                "confidence": 0.45454545454545453,
+                "support": 0.00340522133938706,
+                "support_count": 15
+              }
+            ],
+            "unfiltered_count": null,
+            "available_cuisines": null
+          },
+          {
+            "id": "restaurants_for_you",
+            "scope": "personalized",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "stored recommendation rank",
+            "explanation_kind": "personalized",
+            "explanation_fallback": false,
+            "item_ids": [
+              "16",
+              "1",
+              "44"
+            ],
+            "first_item_reason": "High restaurant-level sample rating in a cuisine you already order",
+            "items": [
+              {
+                "id": "16",
+                "kind": "restaurant"
+              },
+              {
+                "id": "1",
+                "kind": "restaurant"
+              },
+              {
+                "id": "44",
+                "kind": "restaurant"
+              }
+            ],
+            "unfiltered_count": null,
+            "available_cuisines": null
+          },
+          {
+            "id": "explore_something_new",
+            "scope": "new_cuisine",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "completed_orders among unseen cuisines",
+            "explanation_kind": "new_cuisine",
+            "explanation_fallback": false,
+            "item_ids": [
+              "201",
+              "197",
+              "203",
+              "195",
+              "398",
+              "173",
+              "179",
+              "196"
+            ],
+            "first_item_reason": "An Italian dish that is not in your recent orders",
+            "items": [
+              {
+                "id": "201",
+                "kind": "food"
+              },
+              {
+                "id": "197",
+                "kind": "food"
+              },
+              {
+                "id": "203",
+                "kind": "food"
+              },
+              {
+                "id": "195",
+                "kind": "food"
+              },
+              {
+                "id": "398",
+                "kind": "food"
+              },
+              {
+                "id": "173",
+                "kind": "food"
+              },
+              {
+                "id": "179",
+                "kind": "food"
+              },
+              {
+                "id": "196",
+                "kind": "food"
+              }
+            ],
+            "unfiltered_count": null,
+            "available_cuisines": null
+          }
+        ],
+        "request": {
+          "customer_id": "9",
+          "cuisine": null,
+          "category": null,
+          "limit": 8,
+          "min_support_count": 14,
+          "min_confidence": 0.3,
+          "min_lift": 1.0
+        }
+      }
+    },
+    {
+      "id": "customer-9-cuisine-Indian-category-none",
+      "snapshot": {
+        "source": "processed_parquet",
+        "customer_id": "9",
+        "unavailable": [],
+        "history": {
+          "completed_orders": 13,
+          "distinct_foods": 46,
+          "cuisines": [
+            "American",
+            "Chinese",
+            "Indian",
+            "Japanese",
+            "Korean",
+            "Mexican",
+            "Thai",
+            "Vietnamese"
+          ],
+          "thin_history": false,
+          "primary_cuisine": "Mexican"
+        },
+        "applied": {
+          "cuisine": "Indian",
+          "category": null
+        },
+        "persistence": {
+          "save": false,
+          "like": false,
+          "dislike": false
+        },
+        "sections": [
+          {
+            "id": "picked_for_you",
+            "scope": "personalized",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "stored recommendation rank",
+            "explanation_kind": "personalized",
+            "explanation_fallback": false,
+            "item_ids": [
+              "550",
+              "549"
+            ],
+            "first_item_reason": "Often bought with something you already ordered",
+            "items": [
+              {
+                "id": "550",
+                "kind": "food"
+              },
+              {
+                "id": "549",
+                "kind": "food"
+              }
+            ],
+            "unfiltered_count": 5,
+            "available_cuisines": [
+              "American",
+              "Indian",
+              "Vietnamese"
+            ]
+          },
+          {
+            "id": "popular_choices",
+            "scope": "global",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "global",
+            "explanation_fallback": false,
+            "item_ids": [
+              "113",
+              "548",
+              "550",
+              "549",
+              "114",
+              "116",
+              "118",
+              "551",
+              "26",
+              "47",
+              "10",
+              "36",
+              "46",
+              "3"
+            ],
+            "first_item_reason": "Popular across all customers in the completed-order data",
+            "items": [
+              {
+                "id": "113",
+                "kind": "food"
+              },
+              {
+                "id": "548",
+                "kind": "food"
+              },
+              {
+                "id": "550",
+                "kind": "food"
+              },
+              {
+                "id": "549",
+                "kind": "food"
+              },
+              {
+                "id": "114",
+                "kind": "food"
+              },
+              {
+                "id": "116",
+                "kind": "food"
+              },
+              {
+                "id": "118",
+                "kind": "food"
+              },
+              {
+                "id": "551",
+                "kind": "food"
+              },
+              {
+                "id": "26",
+                "kind": "restaurant"
+              },
+              {
+                "id": "47",
+                "kind": "restaurant"
+              },
+              {
+                "id": "10",
+                "kind": "restaurant"
+              },
+              {
+                "id": "36",
+                "kind": "restaurant"
+              },
+              {
+                "id": "46",
+                "kind": "restaurant"
+              },
+              {
+                "id": "3",
+                "kind": "restaurant"
+              }
+            ],
+            "unfiltered_count": 16,
+            "available_cuisines": [
+              "Indian",
+              "Italian",
+              "Japanese",
+              "Korean",
+              "Mexican",
+              "Thai",
+              "Vietnamese"
+            ]
+          },
+          {
+            "id": "similar_to_what_you_like",
+            "scope": "cuisine_catalog",
+            "fallback_kind": "cuisine_catalog",
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "cuisine_catalog",
+            "explanation_fallback": true,
+            "item_ids": [
+              "113",
+              "114",
+              "116",
+              "118",
+              "119",
+              "418",
+              "413",
+              "120"
+            ],
+            "first_item_reason": "Popular Indian dish in the sample catalog. This is not based on this customer's most-ordered cuisine.",
+            "items": [
+              {
+                "id": "113",
+                "kind": "food"
+              },
+              {
+                "id": "114",
+                "kind": "food"
+              },
+              {
+                "id": "116",
+                "kind": "food"
+              },
+              {
+                "id": "118",
+                "kind": "food"
+              },
+              {
+                "id": "119",
+                "kind": "food"
+              },
+              {
+                "id": "418",
+                "kind": "food"
+              },
+              {
+                "id": "413",
+                "kind": "food"
+              },
+              {
+                "id": "120",
+                "kind": "food"
+              }
+            ],
+            "unfiltered_count": 8,
+            "available_cuisines": [
+              "Mexican"
+            ]
+          },
+          {
+            "id": "frequently_bought_together",
+            "scope": "association",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "lift, confidence, and support_count",
+            "explanation_kind": "association",
+            "explanation_fallback": false,
+            "item_ids": [
+              "550",
+              "549"
+            ],
+            "first_item_reason": "Often bought with Mango Lassi. Association is not causation.",
+            "items": [
+              {
+                "id": "550",
+                "kind": "food",
+                "lift": 61.33087633087633,
+                "confidence": 0.5151515151515151,
+                "support": 0.0038592508513053347,
+                "support_count": 17
+              },
+              {
+                "id": "549",
+                "kind": "food",
+                "lift": 55.61868686868686,
+                "confidence": 0.45454545454545453,
+                "support": 0.00340522133938706,
+                "support_count": 15
+              }
+            ],
+            "unfiltered_count": 8,
+            "available_cuisines": [
+              "American",
+              "Indian",
+              "Japanese",
+              "Vietnamese"
+            ]
+          },
+          {
+            "id": "restaurants_for_you",
+            "scope": "cuisine_catalog",
+            "fallback_kind": "cuisine_catalog",
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "cuisine_catalog",
+            "explanation_fallback": true,
+            "item_ids": [
+              "26",
+              "47",
+              "10",
+              "36",
+              "46",
+              "3"
+            ],
+            "first_item_reason": "Popular Indian restaurant in completed sample orders. This is not a stored personal restaurant rank.",
+            "items": [
+              {
+                "id": "26",
+                "kind": "restaurant"
+              },
+              {
+                "id": "47",
+                "kind": "restaurant"
+              },
+              {
+                "id": "10",
+                "kind": "restaurant"
+              },
+              {
+                "id": "36",
+                "kind": "restaurant"
+              },
+              {
+                "id": "46",
+                "kind": "restaurant"
+              },
+              {
+                "id": "3",
+                "kind": "restaurant"
+              }
+            ],
+            "unfiltered_count": 3,
+            "available_cuisines": [
+              "Mexican"
+            ]
+          },
+          {
+            "id": "explore_something_new",
+            "scope": "cuisine_catalog",
+            "fallback_kind": "cuisine_catalog",
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "cuisine_catalog",
+            "explanation_fallback": true,
+            "item_ids": [
+              "117",
+              "421",
+              "539",
+              "300",
+              "415",
+              "540",
+              "310",
+              "414"
+            ],
+            "first_item_reason": "Popular Indian dish in the sample catalog. This is not treated as a new cuisine for this customer.",
+            "items": [
+              {
+                "id": "117",
+                "kind": "food"
+              },
+              {
+                "id": "421",
+                "kind": "food"
+              },
+              {
+                "id": "539",
+                "kind": "food"
+              },
+              {
+                "id": "300",
+                "kind": "food"
+              },
+              {
+                "id": "415",
+                "kind": "food"
+              },
+              {
+                "id": "540",
+                "kind": "food"
+              },
+              {
+                "id": "310",
+                "kind": "food"
+              },
+              {
+                "id": "414",
+                "kind": "food"
+              }
+            ],
+            "unfiltered_count": 8,
+            "available_cuisines": [
+              "Italian",
+              "Mediterranean"
+            ]
+          }
+        ],
+        "request": {
+          "customer_id": "9",
+          "cuisine": "Indian",
+          "category": null,
+          "limit": 8,
+          "min_support_count": 14,
+          "min_confidence": 0.3,
+          "min_lift": 1.0
+        }
+      }
+    },
+    {
+      "id": "customer-9-cuisine-Indian-category-Side",
+      "snapshot": {
+        "source": "processed_parquet",
+        "customer_id": "9",
+        "unavailable": [],
+        "history": {
+          "completed_orders": 13,
+          "distinct_foods": 46,
+          "cuisines": [
+            "American",
+            "Chinese",
+            "Indian",
+            "Japanese",
+            "Korean",
+            "Mexican",
+            "Thai",
+            "Vietnamese"
+          ],
+          "thin_history": false,
+          "primary_cuisine": "Mexican"
+        },
+        "applied": {
+          "cuisine": "Indian",
+          "category": "Side"
+        },
+        "persistence": {
+          "save": false,
+          "like": false,
+          "dislike": false
+        },
+        "sections": [
+          {
+            "id": "picked_for_you",
+            "scope": "personalized",
+            "fallback_kind": null,
+            "empty_kind": "filter_miss",
+            "metric": "stored recommendation rank",
+            "explanation_kind": "personalized",
+            "explanation_fallback": false,
+            "item_ids": [],
+            "first_item_reason": null,
+            "items": [],
+            "unfiltered_count": 5,
+            "available_cuisines": [
+              "American",
+              "Indian",
+              "Vietnamese"
+            ]
+          },
+          {
+            "id": "popular_choices",
+            "scope": "global",
+            "fallback_kind": null,
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "global",
+            "explanation_fallback": false,
+            "item_ids": [
+              "26",
+              "47",
+              "10",
+              "36",
+              "46",
+              "3"
+            ],
+            "first_item_reason": "Popular across all customers in the completed-order data",
+            "items": [
+              {
+                "id": "26",
+                "kind": "restaurant"
+              },
+              {
+                "id": "47",
+                "kind": "restaurant"
+              },
+              {
+                "id": "10",
+                "kind": "restaurant"
+              },
+              {
+                "id": "36",
+                "kind": "restaurant"
+              },
+              {
+                "id": "46",
+                "kind": "restaurant"
+              },
+              {
+                "id": "3",
+                "kind": "restaurant"
+              }
+            ],
+            "unfiltered_count": 16,
+            "available_cuisines": [
+              "Indian",
+              "Italian",
+              "Japanese",
+              "Korean",
+              "Mexican",
+              "Thai",
+              "Vietnamese"
+            ]
+          },
+          {
+            "id": "similar_to_what_you_like",
+            "scope": "cuisine_history",
+            "fallback_kind": null,
+            "empty_kind": "filter_miss",
+            "metric": "cuisine match plus completed-order volume",
+            "explanation_kind": "cuisine_history",
+            "explanation_fallback": false,
+            "item_ids": [],
+            "first_item_reason": null,
+            "items": [],
+            "unfiltered_count": 8,
+            "available_cuisines": [
+              "Mexican"
+            ]
+          },
+          {
+            "id": "frequently_bought_together",
+            "scope": "association",
+            "fallback_kind": null,
+            "empty_kind": "filter_miss",
+            "metric": "lift, confidence, and support_count",
+            "explanation_kind": "association",
+            "explanation_fallback": false,
+            "item_ids": [],
+            "first_item_reason": null,
+            "items": [],
+            "unfiltered_count": 8,
+            "available_cuisines": [
+              "American",
+              "Indian",
+              "Japanese",
+              "Vietnamese"
+            ]
+          },
+          {
+            "id": "restaurants_for_you",
+            "scope": "cuisine_catalog",
+            "fallback_kind": "cuisine_catalog",
+            "empty_kind": null,
+            "metric": "completed_orders",
+            "explanation_kind": "cuisine_catalog",
+            "explanation_fallback": true,
+            "item_ids": [
+              "26",
+              "47",
+              "10",
+              "36",
+              "46",
+              "3"
+            ],
+            "first_item_reason": "Popular Indian restaurant in completed sample orders. This is not a stored personal restaurant rank.",
+            "items": [
+              {
+                "id": "26",
+                "kind": "restaurant"
+              },
+              {
+                "id": "47",
+                "kind": "restaurant"
+              },
+              {
+                "id": "10",
+                "kind": "restaurant"
+              },
+              {
+                "id": "36",
+                "kind": "restaurant"
+              },
+              {
+                "id": "46",
+                "kind": "restaurant"
+              },
+              {
+                "id": "3",
+                "kind": "restaurant"
+              }
+            ],
+            "unfiltered_count": 3,
+            "available_cuisines": [
+              "Mexican"
+            ]
+          },
+          {
+            "id": "explore_something_new",
+            "scope": "new_cuisine",
+            "fallback_kind": null,
+            "empty_kind": "filter_miss",
+            "metric": "completed_orders among unseen cuisines",
+            "explanation_kind": "new_cuisine",
+            "explanation_fallback": false,
+            "item_ids": [],
+            "first_item_reason": null,
+            "items": [],
+            "unfiltered_count": 8,
+            "available_cuisines": [
+              "Italian",
+              "Mediterranean"
+            ]
+          }
+        ],
+        "request": {
+          "customer_id": "9",
+          "cuisine": "Indian",
+          "category": "Side",
+          "limit": 8,
+          "min_support_count": 14,
+          "min_confidence": 0.3,
+          "min_lift": 1.0
+        }
+      }
+    }
+  ]
+}

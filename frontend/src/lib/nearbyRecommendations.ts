@@ -62,3 +62,15 @@ export function recommendationSearchPath(customerId: string, cuisine?: string | 
   if (mapped) params.set('cuisine', mapped)
   return `/app/recommendations?${params.toString()}`
 }
+
+export function restaurantPerformancePath(cuisine?: string | null): string {
+  const mapped = resolveCuisineParam(cuisine, FOODPULSE_CUISINES)
+  if (!mapped) return '/app/restaurants'
+  return `/app/restaurants?cuisine=${encodeURIComponent(mapped)}`
+}
+
+export function nearbyPlaceDetailsPath(placeId: string): string {
+  const id = placeId.trim()
+  if (!id) return '/app/nearby'
+  return `/app/nearby/place/${encodeURIComponent(id)}`
+}

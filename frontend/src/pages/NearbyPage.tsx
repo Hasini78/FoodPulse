@@ -11,7 +11,9 @@ import { getRecommendationCustomers } from '../lib/analytics'
 import { sortCustomerIds } from '../lib/discoveryFilters'
 import { formatNumber } from '../lib/format'
 import { hasMapsApiKey } from '../lib/googleMaps'
-import { recommendationSearchPath } from '../lib/nearbyRecommendations'
+import { nearbyPlaceDetailsPath, recommendationSearchPath, restaurantPerformancePath } from '../lib/nearbyRecommendations'
+import { rememberNearbyPlace } from '../lib/nearbyPlaceSession'
+import { NEARBY_GOOGLE_NOT_SAMPLE, NEARBY_SAMPLE_SELECTOR_DESCRIPTION } from '../lib/sampleCustomerCopy'
 import {
   DIRECTIONS_LIMITATION,
   NEARBY_SOURCE,
@@ -42,7 +44,7 @@ export function NearbyPage() {
   const customers = useAsync(() => getRecommendationCustomers(), [])
   const rankedCustomerIds = sortCustomerIds((customers.data?.customer_ids ?? []) as string[])
   const customerOptions = rankedCustomerIds.length
-    ? [{ value: '', label: 'Select a sample customer' }, ...rankedCustomerIds.map((item) => ({ value: item, label: `Customer ${item}` }))]
+    ? [{ value: '', label: 'Select a sample customer' }, ...rankedCustomerIds.map((item) => ({ value: item, label: `Sample customer ${item}` }))]
     : [{ value: '', label: customers.status === 'error' ? 'Sample customers unavailable' : 'Loading sample customers…' }]
   const searching = phase === 'locating' || phase === 'searching'
   const radiusMeters = Number(radiusKm) * 1000
@@ -52,6 +54,7 @@ export function NearbyPage() {
   const selected = result?.places.find((place) => place.id === selectedId) ?? result?.places[0] ?? null
   const mappedCuisine = selected?.cuisine ?? null
   const recommendationsHref = sampleCustomerId ? recommendationSearchPath(sampleCustomerId, mappedCuisine) : ''
+  const catalogHref = mappedCuisine ? restaurantPerformancePath(mappedCuisine) : '/app/restaurants'
 
   async function runSearch(nextOrigin: NearbyOrigin, nextRadius = radiusMeters) {
     setPhase('searching')
@@ -116,7 +119,7 @@ export function NearbyPage() {
     <div className="space-y-6">
       <PageHeader
         title="Nearby restaurants"
-        description="Look up real-world restaurants on Google Maps around your current location or a destination you type. Google Places listings are not FoodPulse sample restaurants. Optional sample-customer recommendations below are stored ranks for that customer, not the signed-in user, and not the Google restaurant’s menu."
+        description={NEARBY_GOOGLE_NOT_SAMPLE}
       />
 
       <div className="flex flex-wrap items-center gap-2">
@@ -237,9 +240,40 @@ export function NearbyPage() {
         </Panel>
       </div>
 
+      {selected ? (
+        <Panel
+          title="Menu for this Google place"
+          description="Google Places on this page does not return a restaurant menu. Open restaurant details to inspect a published website for schema.org MenuItem records. Sample FoodPulse dishes are not this restaurant’s menu."
+          status="ready"
+        >
+          <p className="text-sm leading-6 text-ink-2">
+            {selected.name} is a Google Places listing, not a FoodPulse sample restaurant. FoodPulse restaurant ids, sample
+            order history, and association rules are not attached unless an exact Google place id is stored.
+          </p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <Link
+              to={nearbyPlaceDetailsPath(selected.id)}
+              state={{ place: selected }}
+              onClick={() => rememberNearbyPlace(selected)}
+              className="inline-flex items-center justify-center gap-2 rounded-full bg-brand-strong px-4 py-2 text-sm font-semibold text-white hover:bg-[#b84208]"
+            >
+              Open restaurant details
+            </Link>
+            {mappedCuisine ? (
+              <Link
+                to={catalogHref}
+                className="inline-flex items-center justify-center gap-2 rounded-full border border-line bg-card px-4 py-2 text-sm font-semibold text-ink-2 hover:border-brand/40 hover:text-brand-strong"
+              >
+                Browse sample {mappedCuisine} restaurants
+              </Link>
+            ) : null}
+          </div>
+        </Panel>
+      ) : null}
+
       <Panel
         title="Sample FoodPulse recommendations"
-        description="Pick a customer that already has stored recommendation rows. This is not the signed-in dashboard user. Recommended dishes come from the sample dataset and are not claimed to be served by the Google place selected above. Google and FoodPulse restaurants are not matched by name, address, or coordinates."
+        description={NEARBY_SAMPLE_SELECTOR_DESCRIPTION}
         status={customers.status === 'error' ? 'error' : 'ready'}
         error={customers.error}
         source="Source: food_recommendations.parquet customer ids. Unit of analysis: sample customer."
@@ -286,7 +320,7 @@ export function NearbyPage() {
         </Link>
         . Ranked dishes stay on{' '}
         <Link to="/app/recommendations" className="font-semibold text-brand-strong hover:underline">
-          Recommendations
+          Sample recommendations
         </Link>
         .
       </p>
@@ -336,6 +370,14 @@ function PlaceCard({ place, selected, onSelect }: { place: NearbyPlace; selected
             Open in Google Maps
           </a>
         ) : null}
+        <Link
+          to={nearbyPlaceDetailsPath(place.id)}
+          state={{ place }}
+          onClick={() => rememberNearbyPlace(place)}
+          className="inline-flex items-center gap-1.5 text-xs font-semibold text-brand-strong hover:underline"
+        >
+          Restaurant details
+        </Link>
       </div>
     </article>
   )

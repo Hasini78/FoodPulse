@@ -1,6 +1,7 @@
 import axios from 'axios'
 
 import { api } from './api'
+import { CUSTOMER_PAGE_SIZE } from './customers'
 
 export function errorMessage(error: unknown): string {
   if (axios.isAxiosError(error)) {
@@ -21,6 +22,16 @@ export async function getProcessedOverview(start?: string, end?: string) {
 
 export async function getOperationalOverview() {
   const { data } = await api.get('/stats/overview')
+  return data
+}
+
+export async function getCustomers(params: { skip?: number; limit?: number } = {}) {
+  const { data } = await api.get('/customers', {
+    params: {
+      skip: params.skip ?? 0,
+      limit: params.limit ?? CUSTOMER_PAGE_SIZE,
+    },
+  })
   return data
 }
 
@@ -96,6 +107,14 @@ export async function getForecastRestaurants() {
 export async function getForecast(restaurantId: string, modelName: string) {
   const { data } = await api.get('/analytics/forecast', {
     params: { restaurant_id: restaurantId, model_name: modelName, aggregation: 'daily' },
+  })
+  return data
+}
+
+export async function inspectNearbyMenu(body: { url?: string; google_place_id?: string }) {
+  const { data } = await api.post('/analytics/nearby/menu-inspect', {
+    url: body.url || undefined,
+    google_place_id: body.google_place_id || undefined,
   })
   return data
 }

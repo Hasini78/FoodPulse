@@ -6,7 +6,7 @@ from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 
-from app.api import analytics, customers, health, restaurants, stats
+from app.api import analytics, customers, food_items, health, order_items, restaurants, stats
 from app.core.config import get_settings
 from app.db.session import Base, engine
 
@@ -41,6 +41,8 @@ def create_app() -> FastAPI:
     application.include_router(health.router)
     application.include_router(restaurants.router)
     application.include_router(customers.router)
+    application.include_router(food_items.router)
+    application.include_router(order_items.router)
     application.include_router(stats.router)
     application.include_router(analytics.router)
 

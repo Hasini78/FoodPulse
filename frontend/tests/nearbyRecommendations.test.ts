@@ -6,6 +6,8 @@ import {
   FOODPULSE_CUISINES,
   mapGooglePrimaryTypeToCuisine,
   recommendationSearchPath,
+  nearbyPlaceDetailsPath,
+  restaurantPerformancePath,
   resolveCuisineParam,
   resolveCustomerParam,
 } from '../src/lib/nearbyRecommendations.ts'
@@ -76,5 +78,17 @@ describe('recommendation URL parameters', () => {
 
   it('keeps recommendations without parameters on the bare route', () => {
     assert.equal(recommendationSearchPath('  '), '/app/recommendations')
+  })
+
+  it('builds a restaurant performance path only for mapped FoodPulse cuisines', () => {
+    assert.equal(restaurantPerformancePath(), '/app/restaurants')
+    assert.equal(restaurantPerformancePath('Indian'), '/app/restaurants?cuisine=Indian')
+    assert.equal(restaurantPerformancePath('French'), '/app/restaurants')
+    assert.equal(restaurantPerformancePath('indian_restaurant'), '/app/restaurants')
+  })
+
+  it('builds a Nearby details path from a Google place id', () => {
+    assert.equal(nearbyPlaceDetailsPath(''), '/app/nearby')
+    assert.equal(nearbyPlaceDetailsPath('ChIJ abc'), `/app/nearby/place/${encodeURIComponent('ChIJ abc')}`)
   })
 })

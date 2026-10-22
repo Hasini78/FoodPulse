@@ -28,8 +28,8 @@ export function OverviewPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Dashboard"
-        description="Source: processed Parquet. Completed-order revenue uses only rows whose status lowercases to completed. PostgreSQL counts are in a separate panel and are not copied into these cards."
+        title="Business dashboard"
+        description="Operational revenue and orders from processed Parquet. Completed-order revenue uses only rows whose status lowercases to completed. PostgreSQL counts are in a separate panel and are not copied into these cards. Sample-customer recommendations stay on their own page."
         actions={
           <>
             <DateField label="From" value={start} onChange={setStart} />

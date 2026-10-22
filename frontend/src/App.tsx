@@ -8,6 +8,7 @@ import { InsightsPage } from './pages/InsightsPage'
 import { LandingPage } from './pages/LandingPage'
 import { LoginPage } from './pages/LoginPage'
 import { NearbyPage } from './pages/NearbyPage'
+import { NearbyPlacePage } from './pages/NearbyPlacePage'
 import { OverviewPage } from './pages/OverviewPage'
 import { RecommendationsPage } from './pages/RecommendationsPage'
 import { RestaurantsPage } from './pages/RestaurantsPage'
@@ -24,6 +25,7 @@ export default function App() {
           <Route index element={<OverviewPage />} />
           <Route path="restaurants" element={<RestaurantsPage />} />
           <Route path="nearby" element={<NearbyPage />} />
+          <Route path="nearby/place/:placeId" element={<NearbyPlacePage />} />
           <Route path="sentiment" element={<SentimentPage />} />
           <Route path="segments" element={<SegmentsPage />} />
           <Route path="churn" element={<ChurnPage />} />

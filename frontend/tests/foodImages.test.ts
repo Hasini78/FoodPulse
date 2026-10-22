@@ -4,6 +4,7 @@ import { afterEach, describe, it } from 'node:test'
 import {
   isRelevantMeal,
   lookupFoodImage,
+  lookupQueries,
   resetFoodImageCache,
   scoreMeal,
 } from '../src/lib/foodImages.ts'
@@ -19,9 +20,18 @@ describe('food image relevance', () => {
   it('accepts a close dish name and rejects an unrelated one', () => {
     assert.equal(isRelevantMeal('Salmon Sushi', 'Sushi'), true)
     assert.equal(isRelevantMeal('Korean Fried Chicken', 'Fried Chicken'), true)
+    assert.equal(isRelevantMeal('Pho Bo', 'Pho'), true)
     assert.equal(isRelevantMeal('Pho Bo', 'Apple Frangipan Tart'), false)
     assert.equal(isRelevantMeal('Gulab Jamun', 'Chicken Handi'), false)
+    assert.equal(isRelevantMeal('Che', 'Chicken Handi'), false)
     assert.ok(scoreMeal('Salmon Sushi', 'Salmon Sushi') > scoreMeal('Salmon Sushi', 'Sushi'))
+  })
+
+  it('searches distinctive tokens and aliases without using unrelated cuisine meals', () => {
+    const queries = lookupQueries('Pho Bo').map((query) => query.toLowerCase())
+    assert.ok(queries.includes('pho'))
+    assert.ok(lookupQueries('Gulab Jamun').includes('Gulab Jamun'))
+    assert.equal(lookupQueries('Paneer Tikka').includes('chicken tikka masala'), false)
   })
 })
 

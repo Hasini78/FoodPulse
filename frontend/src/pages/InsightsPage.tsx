@@ -8,7 +8,7 @@ const links: Array<{ to: string; label: string; text: string; icon: IconName }> 
   { to: '/app/sentiment', label: 'Sentiment', text: 'Stored VADER labels on sample reviews. Scores are not live public opinion.', icon: 'message' },
   { to: '/app/segments', label: 'Segments', text: 'Data-derived groups from stored recency, frequency, and spend medians.', icon: 'users' },
   { to: '/app/churn', label: 'Churn risk', text: 'Rule-based inactivity scores. A high score is not a probability of leaving.', icon: 'alert' },
-  { to: '/app/recommendations', label: 'Recommendations and rules', text: 'Stored ranks plus association rules. Co-purchase is not causation.', icon: 'sparkles' },
+  { to: '/app/recommendations', label: 'Sample recommendations', text: 'Stored ranks plus association rules. Co-purchase is not causation. Catalog popularity is labelled separately.', icon: 'sparkles' },
   { to: '/app/forecast', label: 'Demand forecast', text: 'Stored historical demand beside forward model estimates, not guaranteed orders.', icon: 'trending' },
 ]
 

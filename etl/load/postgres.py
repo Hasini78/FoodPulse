@@ -2,7 +2,8 @@
 
 Dry-run validates files only. Execute upserts by primary key and never deletes.
 Locations are loaded first because restaurants require ``location_id``.
-Food items, order items, users, and customer activity are not part of this load.
+Food items follow restaurants. Order items follow orders and food items.
+Users and customer activity are not part of this load.
 """
 
 from __future__ import annotations
@@ -95,6 +96,22 @@ TABLES: tuple[TableSpec, ...] = (
         parents=(("location_id", "locations"),),
     ),
     TableSpec(
+        "food_items",
+        "food_items.parquet",
+        "FoodItem",
+        (
+            FieldSpec("id", "int"),
+            FieldSpec("restaurant_id", "int"),
+            FieldSpec("name", "text", max_length=255),
+            FieldSpec("category", "text", max_length=100),
+            FieldSpec("description", "text", required=False),
+            FieldSpec("price", "decimal"),
+            FieldSpec("is_available", "bool"),
+            FieldSpec("created_at", "datetime"),
+        ),
+        parents=(("restaurant_id", "restaurants"),),
+    ),
+    TableSpec(
         "customers",
         "customers.parquet",
         "Customer",
@@ -126,6 +143,20 @@ TABLES: tuple[TableSpec, ...] = (
             FieldSpec("created_at", "datetime"),
         ),
         parents=(("customer_id", "customers"), ("restaurant_id", "restaurants")),
+    ),
+    TableSpec(
+        "order_items",
+        "order_items.parquet",
+        "OrderItem",
+        (
+            FieldSpec("id", "int"),
+            FieldSpec("order_id", "int"),
+            FieldSpec("food_item_id", "int"),
+            FieldSpec("quantity", "int"),
+            FieldSpec("unit_price", "decimal"),
+            FieldSpec("subtotal", "decimal"),
+        ),
+        parents=(("order_id", "orders"), ("food_item_id", "food_items")),
     ),
     TableSpec(
         "reviews",
@@ -169,6 +200,7 @@ def build_plan(processed_dir: Path) -> dict[str, object]:
     rows: dict[str, list[dict[str, object]]] = {}
     summaries: dict[str, TableSummary] = {}
     unique_seen: dict[str, dict[str, set[object]]] = {}
+    restaurant_of: dict[str, dict[int, int]] = {"food_items": {}, "orders": {}}
     for spec in TABLES:
         path = processed_dir / spec.filename
         if not path.is_file():
@@ -202,12 +234,19 @@ def build_plan(processed_dir: Path) -> dict[str, object]:
                 summary.skipped += 1
                 summary.note(parent_error)
                 continue
+            offering_error = _offering_restaurant_error(payload, spec.name, restaurant_of)
+            if offering_error:
+                summary.skipped += 1
+                summary.note(offering_error)
+                continue
             for column, parent in spec.optional_parents:
                 value = payload.get(column)
                 if value is not None and int(value) not in keys.get(parent, set()):
                     payload[column] = None
                     summary.note(f"{column} {value} is not in {parent}; stored as empty")
             seen_ids.add(identifier)
+            if spec.name in restaurant_of and "restaurant_id" in payload:
+                restaurant_of[spec.name][identifier] = int(payload["restaurant_id"])
             for column in spec.unique:
                 unique_seen[spec.name][column].add(payload[column])
             prepared.append(payload)
@@ -344,6 +383,28 @@ def _parent_error(payload: dict[str, object], parents: tuple[tuple[str, str], ..
         value = payload.get(column)
         if value is None or int(value) not in keys.get(parent, set()):
             return f"{column} {value} is not in {parent}"
+    return None
+
+
+def _offering_restaurant_error(
+    payload: dict[str, object],
+    table: str,
+    restaurant_of: dict[str, dict[int, int]],
+) -> str | None:
+    """Skip order lines whose food offering is not on the order's restaurant."""
+    if table != "order_items":
+        return None
+    food_id = payload.get("food_item_id")
+    order_id = payload.get("order_id")
+    if food_id is None or order_id is None:
+        return f"order_item {payload.get('id')}: food restaurant None does not match order restaurant None"
+    food_rest = restaurant_of.get("food_items", {}).get(int(food_id))
+    order_rest = restaurant_of.get("orders", {}).get(int(order_id))
+    if food_rest is None or order_rest is None or food_rest != order_rest:
+        return (
+            f"order_item {payload.get('id')}: food restaurant {food_rest} does not match "
+            f"order restaurant {order_rest}"
+        )
     return None
 
 

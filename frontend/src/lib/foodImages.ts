@@ -1,5 +1,55 @@
 const MEALDB_SEARCH = 'https://www.themealdb.com/api/json/v1/1/search.php?s='
 const STOP_WORDS = new Set(['the', 'and', 'with', 'a', 'an', 'of', 'style', 'special', 'house', 'kitchen'])
+const GENERIC_TOKENS = new Set([
+  'chicken',
+  'beef',
+  'pork',
+  'veg',
+  'green',
+  'hot',
+  'sour',
+  'iced',
+  'fried',
+  'rice',
+  'soup',
+  'salad',
+  'tea',
+  'plate',
+  'wrap',
+  'dish',
+])
+
+/** Short MealDB search terms for sample dishes. Never map a dish to an unrelated meal. */
+export const DISH_SEARCH_ALIASES: Record<string, string[]> = {
+  'pho bo': ['pho'],
+  'bun cha': ['bun cha'],
+  'banh mi': ['banh mi'],
+  'mac & cheese': ['macaroni', 'mac and cheese'],
+  'hot & sour soup': ['hot and sour soup', 'hot and sour'],
+  'pasta carbonara': ['carbonara'],
+  'margherita pizza': ['margherita'],
+  'caesar salad': ['caesar salad'],
+  'chocolate shake': ['chocolate milkshake'],
+  'veg fried rice': ['fried rice'],
+  'masala dosa': ['dosa'],
+  'chole bhature': ['chole'],
+  'dal makhani': ['dal fry'],
+  'mango lassi': ['lassi'],
+  'korean fried chicken': ['fried chicken'],
+  'chicken shawarma': ['shawarma'],
+  'falafel wrap': ['falafel'],
+  'hummus plate': ['hummus'],
+  'kung pao chicken': ['kung pao'],
+  'tom yum soup': ['tom yum'],
+  'mango sticky rice': ['sticky rice'],
+  'thai iced tea': ['iced tea'],
+  'matcha ice cream': ['matcha'],
+  'chicken tacos': ['tacos'],
+  'beef burrito': ['burrito'],
+  'cheeseburger': ['cheeseburger', 'hamburger'],
+  'bbq ribs': ['ribs'],
+  'paneer tikka': ['paneer'],
+}
 
 export type FoodImageResult = {
   url: string | null
@@ -30,12 +80,18 @@ export function cacheKey(name: string, cuisine?: string | null): string {
   return `${normalizeFoodName(name)}|${normalizeFoodName(cuisine)}`
 }
 
+export function containsPhrase(haystack: string, needle: string): boolean {
+  const h = ` ${normalizeFoodName(haystack)} `
+  const n = ` ${normalizeFoodName(needle)} `
+  return Boolean(n.trim()) && h.includes(n)
+}
+
 export function isRelevantMeal(query: string, mealName: string): boolean {
   const normalizedQuery = normalizeFoodName(query)
   const normalizedMeal = normalizeFoodName(mealName)
   if (!normalizedQuery || !normalizedMeal) return false
   if (normalizedQuery === normalizedMeal) return true
-  if (normalizedMeal.includes(normalizedQuery) || normalizedQuery.includes(normalizedMeal)) return true
+  if (containsPhrase(normalizedMeal, normalizedQuery) || containsPhrase(normalizedQuery, normalizedMeal)) return true
   const queryTokens = foodNameTokens(query)
   const mealTokens = foodNameTokens(mealName)
   if (!queryTokens.length || !mealTokens.length) return false
@@ -50,12 +106,26 @@ export function scoreMeal(query: string, mealName: string): number {
   const normalizedQuery = normalizeFoodName(query)
   const normalizedMeal = normalizeFoodName(mealName)
   if (normalizedQuery === normalizedMeal) return 100
-  if (normalizedMeal.includes(normalizedQuery) || normalizedQuery.includes(normalizedMeal)) return 80
+  if (containsPhrase(normalizedMeal, normalizedQuery) || containsPhrase(normalizedQuery, normalizedMeal)) return 80
   const queryTokens = foodNameTokens(query)
   const mealTokens = foodNameTokens(mealName)
   const shared = queryTokens.filter((token) => mealTokens.includes(token)).length
   const union = new Set([...queryTokens, ...mealTokens]).size || 1
   return (shared / union) * 60
+}
+
+export function lookupQueries(name: string): string[] {
+  const cleaned = name.replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim()
+  const tokens = foodNameTokens(cleaned)
+  const queries = [cleaned, ...(DISH_SEARCH_ALIASES[normalizeFoodName(cleaned)] ?? [])]
+  if (tokens.length >= 2) {
+    queries.push(tokens.slice(-2).join(' '))
+    queries.push(tokens.slice(0, 2).join(' '))
+  }
+  for (const token of tokens) {
+    if (token.length >= 3 && !GENERIC_TOKENS.has(token)) queries.push(token)
+  }
+  return [...new Set(queries.map((query) => query.trim()).filter((query) => query.length >= 3))]
 }
 
 export function resetFoodImageCache(): void {
@@ -89,7 +159,12 @@ async function resolveImage(name: string): Promise<FoodImageResult> {
   for (const query of queries) {
     const meals = await searchMeals(query)
     const ranked = meals
-      .filter((meal) => meal.strMeal && meal.strMealThumb && isRelevantMeal(name, meal.strMeal))
+      .filter(
+        (meal) =>
+          meal.strMeal &&
+          meal.strMealThumb &&
+          (isRelevantMeal(name, meal.strMeal) || isRelevantMeal(query, meal.strMeal)),
+      )
       .sort((left, right) => scoreMeal(name, right.strMeal ?? '') - scoreMeal(name, left.strMeal ?? ''))
     const best = ranked[0]
     if (best?.strMealThumb) {
@@ -97,15 +172,6 @@ async function resolveImage(name: string): Promise<FoodImageResult> {
     }
   }
   return { url: null, source: 'none' }
-}
-
-function lookupQueries(name: string): string[] {
-  const cleaned = name.replace(/\([^)]*\)/g, ' ').replace(/\s+/g, ' ').trim()
-  const tokens = foodNameTokens(cleaned)
-  const queries = [cleaned]
-  if (tokens.length >= 2) queries.push(tokens.slice(-2).join(' '))
-  if (tokens.length >= 1) queries.push(tokens[tokens.length - 1])
-  return [...new Set(queries.filter((query) => query.length >= 3))]
 }
 
 async function searchMeals(query: string): Promise<MealRecord[]> {

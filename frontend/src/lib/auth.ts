@@ -1,5 +1,7 @@
 import axios from 'axios'
 
+import { SIGN_IN_UNAVAILABLE } from './sampleCustomerCopy'
+
 /**
  * Optional sign-in. The dashboard stays open unless VITE_REQUIRE_AUTH=true.
  * `signIn` posts to POST {API}/auth/login using the FastAPI OAuth2 form
@@ -41,7 +43,7 @@ export async function signIn(email: string, password: string): Promise<void> {
     if (axios.isAxiosError(error)) {
       const status = error.response?.status
       if (status === 401 || status === 400 || status === 422) throw new Error('Email or password is incorrect.')
-      if (status === 404) throw new Error('Sign-in is not enabled on this backend yet. You can open the dashboard without an account.')
+      if (status === 404) throw new Error(SIGN_IN_UNAVAILABLE)
       if (!error.response) throw new Error('The API is unreachable. Start the backend, then try again.')
     }
     throw error instanceof Error ? error : new Error('Sign-in failed.')

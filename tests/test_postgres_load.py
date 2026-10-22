@@ -23,8 +23,9 @@ if str(ROOT) not in sys.path:
 
 from app.db.session import Base
 from app.models.customer import Customer
+from app.models.food import FoodItem
 from app.models.location import Location
-from app.models.order import Order
+from app.models.order import Order, OrderItem
 from app.models.restaurant import Restaurant
 from app.models.review import Review
 from etl.load.postgres import TableSummary, apply_plan, build_plan, report, verify_target
@@ -33,8 +34,10 @@ from etl.pipelines.run_postgres_load import main, run_load
 MODELS = {
     "Location": Location,
     "Restaurant": Restaurant,
+    "FoodItem": FoodItem,
     "Customer": Customer,
     "Order": Order,
+    "OrderItem": OrderItem,
     "Review": Review,
 }
 PROCESSED = ROOT / "data" / "processed"
@@ -134,6 +137,36 @@ def _world(directory: Path) -> None:
             }
         ),
     )
+    _write(
+        directory,
+        "food_items.parquet",
+        pd.DataFrame(
+            {
+                "id": [20, 21],
+                "restaurant_id": [10, 11],
+                "name": ["Pad Thai", "Biryani"],
+                "category": ["Main", "Main"],
+                "description": ["A", "B"],
+                "price": [12.0, 14.0],
+                "is_available": [True, True],
+                "created_at": [pd.Timestamp("2026-01-01T00:00:00Z")] * 2,
+            }
+        ),
+    )
+    _write(
+        directory,
+        "order_items.parquet",
+        pd.DataFrame(
+            {
+                "id": [1, 2, 3],
+                "order_id": [100, 100, 101],
+                "food_item_id": [20, 21, 20],
+                "quantity": [2, 1, 1],
+                "unit_price": [12.0, 14.0, 12.0],
+                "subtotal": [24.0, 14.0, 12.0],
+            }
+        ),
+    )
 
 
 def _session():
@@ -159,6 +192,10 @@ def test_mapping_and_foreign_key_order(tmp_path: Path) -> None:
     assert [row["id"] for row in plan["rows"]["orders"]] == [100]
     assert plan["summaries"]["orders"].skipped == 1
     assert "is_total_outlier" not in plan["rows"]["orders"][0]
+    assert [row["id"] for row in plan["rows"]["food_items"]] == [20]
+    assert plan["summaries"]["food_items"].skipped == 1
+    assert [row["id"] for row in plan["rows"]["order_items"]] == [1]
+    assert plan["summaries"]["order_items"].skipped == 2
     assert [row["id"] for row in plan["rows"]["reviews"]] == [7, 9]
     assert plan["rows"]["reviews"][0]["order_id"] == 100
     assert plan["rows"]["reviews"][1]["order_id"] is None
@@ -200,8 +237,12 @@ def test_execute_upserts_and_is_repeatable(tmp_path: Path) -> None:
     assert by_table["restaurants"]["inserted"] == 1
     assert by_table["customers"]["inserted"] == 2
     assert by_table["orders"]["inserted"] == 1
+    assert by_table["food_items"]["inserted"] == 1
+    assert by_table["order_items"]["inserted"] == 1
     assert by_table["reviews"]["inserted"] == 2
     assert session.get(Restaurant, 10).name == "Thai House"
+    assert session.get(FoodItem, 20).name == "Pad Thai"
+    assert session.get(OrderItem, 1).quantity == 2
     assert session.get(Review, 7).rating == 5
     assert session.get(Review, 9).order_id is None
     frame = pd.read_parquet(tmp_path / "restaurants.parquet")
@@ -245,9 +286,45 @@ def test_missing_file_invalid_values_and_target(tmp_path: Path) -> None:
     with pytest.raises(ValueError, match="host"):
         verify_target("postgresql://user:secret@prod.example.com:5432/foodpulse")
     assert verify_target("postgresql://user:secret@localhost:5432/foodpulse") == "foodpulse"
-    summaries = {spec: TableSummary(spec, prepared=1) for spec in ("locations", "restaurants", "customers", "orders", "reviews")}
+    summaries = {
+        spec: TableSummary(spec, prepared=1)
+        for spec in ("locations", "restaurants", "food_items", "customers", "orders", "order_items", "reviews")
+    }
     payload = report(summaries, True)
     assert all(item["inserted"] == 0 and item["updated"] == 0 and item["dry_run"] is True for item in payload)
+
+
+def test_order_item_skips_restaurant_mismatch(tmp_path: Path) -> None:
+    _world(tmp_path)
+    restaurants = pd.read_parquet(tmp_path / "restaurants.parquet")
+    restaurants.loc[restaurants["id"] == 11, "location_id"] = 5
+    restaurants.to_parquet(tmp_path / "restaurants.parquet", index=False)
+    foods = pd.read_parquet(tmp_path / "food_items.parquet")
+    foods.loc[foods["id"] == 21, "restaurant_id"] = 11
+    foods.to_parquet(tmp_path / "food_items.parquet", index=False)
+    items = pd.read_parquet(tmp_path / "order_items.parquet")
+    items = pd.concat(
+        [
+            items,
+            pd.DataFrame(
+                {
+                    "id": [9],
+                    "order_id": [100],
+                    "food_item_id": [21],
+                    "quantity": [1],
+                    "unit_price": [14.0],
+                    "subtotal": [14.0],
+                }
+            ),
+        ],
+        ignore_index=True,
+    )
+    items.to_parquet(tmp_path / "order_items.parquet", index=False)
+    plan = build_plan(tmp_path)
+    assert 11 in [row["id"] for row in plan["rows"]["restaurants"]]
+    assert 21 in [row["id"] for row in plan["rows"]["food_items"]]
+    assert 9 not in [row["id"] for row in plan["rows"]["order_items"]]
+    assert any("does not match order restaurant" in reason for reason in plan["summaries"]["order_items"].reasons)
 
 
 def test_summary_counts_match_plan(tmp_path: Path) -> None:
@@ -261,6 +338,10 @@ def test_summary_counts_match_plan(tmp_path: Path) -> None:
     assert by_table["customers"]["skipped"] == 1
     assert by_table["customers"]["rejected"] == 2
     assert by_table["orders"]["skipped"] == 1
+    assert by_table["food_items"]["prepared"] == 1
+    assert by_table["food_items"]["skipped"] == 1
+    assert by_table["order_items"]["prepared"] == 1
+    assert by_table["order_items"]["skipped"] == 2
     assert by_table["reviews"]["prepared"] == 2
     assert by_table["reviews"]["rejected"] == 1
     assert all(item["inserted"] == 0 and item["updated"] == 0 for item in payload)
@@ -275,6 +356,8 @@ def test_real_processed_files_map_without_database() -> None:
     assert by_table["restaurants"]["prepared"] == 50
     assert by_table["customers"]["prepared"] == 500
     assert by_table["orders"]["prepared"] == 5000
+    assert by_table["food_items"]["prepared"] == 587
+    assert by_table["order_items"]["prepared"] == 14995
     assert by_table["reviews"]["prepared"] == 3000
     assert all(item["skipped"] == 0 and item["rejected"] == 0 for item in payload)
     assert "is_total_outlier" not in plan["rows"]["orders"][0]

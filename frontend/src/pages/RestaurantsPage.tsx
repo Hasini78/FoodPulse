@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { Link } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 
 import { DataTable } from '../components/DataTable'
 import { SelectField } from '../components/Field'
@@ -9,11 +9,13 @@ import { PlotlyChart } from '../components/PlotlyChart'
 import { getRestaurantDetail, getRestaurants } from '../lib/analytics'
 import { formatNumber } from '../lib/format'
 import { RESTAURANT_SOURCE, ratingSourceCaption, sourceSentence } from '../lib/metricExplanations'
+import { FOODPULSE_CUISINES, resolveCuisineParam } from '../lib/nearbyRecommendations'
 import { useAsync } from '../lib/useAsync'
 
 export function RestaurantsPage() {
+  const [searchParams] = useSearchParams()
   const [sort, setSort] = useState('total_spend')
-  const [cuisine, setCuisine] = useState('')
+  const [cuisine, setCuisine] = useState(() => resolveCuisineParam(searchParams.get('cuisine'), FOODPULSE_CUISINES))
   const state = useAsync(() => getRestaurants({ sort, cuisine: cuisine || undefined }), [sort, cuisine])
   const items = (state.data?.items ?? []) as Array<Record<string, unknown>>
   const [selectedId, setSelectedId] = useState('')
@@ -24,7 +26,7 @@ export function RestaurantsPage() {
   return (
     <div className="space-y-6">
       <PageHeader
-        title="Restaurant performance"
+        title="Sample restaurant performance"
         description={
           <>
             Completed-order counts and spend use total_amount from orders.parquet. {ratingSourceCaption()} Sentiment score on
@@ -33,7 +35,7 @@ export function RestaurantsPage() {
             <Link to="/app/nearby" className="font-semibold text-brand-strong hover:underline">
               Nearby restaurants
             </Link>{' '}
-            looks up real-world places on Google Maps instead.
+            looks up real-world places on Google Maps instead. Restaurant menu details stay on the Nearby details route.
           </>
         }
         actions={

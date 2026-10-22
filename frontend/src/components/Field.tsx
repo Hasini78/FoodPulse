@@ -22,12 +22,19 @@ type SelectFieldProps = {
   onChange: (value: string) => void
   options: Option[]
   disabled?: boolean
+  name?: string
 }
 
-export function SelectField({ label, value, onChange, options, disabled }: SelectFieldProps) {
+export function SelectField({ label, value, onChange, options, disabled, name }: SelectFieldProps) {
   return (
     <Field label={label}>
-      <select className={control} value={value} disabled={disabled} onChange={(event) => onChange(event.target.value)}>
+      <select
+        className={control}
+        name={name}
+        value={value}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.value)}
+      >
         {options.map((option) => (
           <option key={option.value} value={option.value}>
             {option.label}
@@ -38,12 +45,42 @@ export function SelectField({ label, value, onChange, options, disabled }: Selec
   )
 }
 
-type TextFieldProps = { label: string; value: string; onChange: (value: string) => void; placeholder?: string; disabled?: boolean }
+type TextFieldProps = {
+  label: string
+  value: string
+  onChange: (value: string) => void
+  placeholder?: string
+  disabled?: boolean
+  type?: 'text' | 'search' | 'url'
+  name?: string
+  autoComplete?: string
+  inputMode?: 'search' | 'url' | 'text'
+}
 
-export function TextField({ label, value, onChange, placeholder, disabled }: TextFieldProps) {
+export function TextField({
+  label,
+  value,
+  onChange,
+  placeholder,
+  disabled,
+  type = 'text',
+  name,
+  autoComplete,
+  inputMode,
+}: TextFieldProps) {
   return (
     <Field label={label}>
-      <input className={control} type="search" value={value} placeholder={placeholder} disabled={disabled} onChange={(event) => onChange(event.target.value)} />
+      <input
+        className={control}
+        type={type}
+        name={name}
+        autoComplete={autoComplete}
+        inputMode={inputMode}
+        value={value}
+        placeholder={placeholder}
+        disabled={disabled}
+        onChange={(event) => onChange(event.target.value)}
+      />
     </Field>
   )
 }
